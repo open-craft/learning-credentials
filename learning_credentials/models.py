@@ -165,10 +165,11 @@ class CredentialConfiguration(TimeStampedModel):
         filtered_user_ids_set = set(user_ids) - set(users_ids_with_credentials)
         return list(filtered_user_ids_set)
 
-    def get_eligible_user_ids(self) -> list[int]:
+    def get_eligible_user_ids(self, user_id: int = None) -> list[int]:
         """
         Get the list of eligible learners for the given course.
 
+        :param user_id: Optional. If provided, will check eligibility for the specific user.
         :return: A list of user IDs.
         """
         func_path = self.credential_type.retrieval_func
@@ -177,7 +178,7 @@ class CredentialConfiguration(TimeStampedModel):
         func = getattr(module, func_name)
 
         custom_options = {**self.credential_type.custom_options, **self.custom_options}
-        return func(self.learning_context_key, custom_options)
+        return func(self.learning_context_key, custom_options, user_id=user_id)
 
     def generate_credential_for_user(self, user_id: int, celery_task_id: int = 0):
         """

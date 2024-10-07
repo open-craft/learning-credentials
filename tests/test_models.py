@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from opaque_keys.edx.keys import LearningContextKey
 
 
-def _mock_retrieval_func(_context_id: LearningContextKey, _options: dict[str, Any]) -> list[int]:
+def _mock_retrieval_func(_context_id: LearningContextKey, _options: dict[str, Any], user_id: int = None) -> list[int]:
     return [1, 2, 3]
 
 
