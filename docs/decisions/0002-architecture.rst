@@ -12,8 +12,8 @@ Status
 Context
 *******
 
-#. This Django app generates and shows user certificates.
-#. The models should store certificate configurations. The certificate types will vary between different course types.
+#. This Django app generates and shows user credentials.
+#. The models should store credential configurations. The credential types will vary between different course types.
    The available course types are:
 
    #. :ref:`Course <course>`.
@@ -26,10 +26,10 @@ Context
 #. We decided not to use `openedx-events`_ because retrieving the eligible users can be a heavy operation. Doing it on
    every block completion or problem submission is likely to cause performance issues. We may consider this approach in
    the future, but now we want to avoid adding more complexity.
-#. If a user matches the criteria, the certificates will be generated from a PDF template (stored in the assets model).
+#. If a user matches the criteria, the credentials will be generated from a PDF template (stored in the assets model).
    The PDF will be uploaded to S3, and the link will be sent to the user. The generation process should also be
    pluggable - it means that other developers can develop a Python package and install it to have custom ways to
-   generate certificates.
+   generate credentials.
 
 .. _celerybeat: https://django-celery-beat.readthedocs.io/en/latest/
 .. _openedx-events: https://github.com/openedx/openedx-events
@@ -59,10 +59,10 @@ Decision
             color=lightgrey;
 
             // Resources/models
-            CertificateType [label="ExternalCertificateType"]
-            CourseConfiguration [label="ExternalCertificateCourseConfiguration"]
-            Certificate [label="ExternalCertificate"]
-            Asset [label="ExternalCertificateAsset"]
+            CredentialType [label="CredentialType"]
+            CourseConfiguration [label="CredentialConfiguration"]
+            Credential [label="Credential"]
+            Asset [label="CredentialAsset"]
             PeriodicTask
             Schedule
 
@@ -72,7 +72,7 @@ Decision
 
             // DB relations
             edge [fontcolor=black, color=gray50]
-            CertificateType -> CourseConfiguration [dir=back, headlabel="0..*", taillabel="1   "]
+            CredentialType -> CourseConfiguration [dir=back, headlabel="0..*", taillabel="1   "]
             CourseConfiguration -> PeriodicTask [dir=both, headlabel="1   ", taillabel="1"]
 
             // Non-DB relations
@@ -85,7 +85,7 @@ Decision
             edge [fontcolor=black, color=red]
             Schedule -> Processing [label="trigger"]
             Processing -> Generation [label="provide eligible users"]
-            Generation -> Certificate [label="generate certificates"]
+            Generation -> Credential [label="generate credentials"]
         }
 
 
@@ -101,21 +101,21 @@ User stories
 
 TODO: Move this to the docs.
 
-As an Instructor, I want to enable certificate generation for a course.
+As an Instructor, I want to enable credential generation for a course.
 =======================================================================
 
 To do this, I should:
 
-#. Visit course certificate admin page.
-#. Create a new entry with a course ID, certificate type and an "Enabled" toggle.
-#. Internally, each of these entries will be a cron task. This way, we can set individual certificate generation schedules.
-   It means that an Instructor can schedule generating different certificates for the same course at different times.
+#. Visit course credential admin page.
+#. Create a new entry with a course ID, credential type and an "Enabled" toggle.
+#. Internally, each of these entries will be a cron task. This way, we can set individual credential generation schedules.
+   It means that an Instructor can schedule generating different credentials for the same course at different times.
 
 Once done, the celery cron will be scheduled to run at the specified time. The celery task will:
 
 #. Retrieve data from the external API.
-#. Check which users are eligible for a certificate.
-#. Generate certificates for the eligible users.
+#. Check which users are eligible for a credential.
+#. Generate credentials for the eligible users.
 
 
 Questions:

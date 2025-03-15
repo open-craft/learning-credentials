@@ -6,7 +6,7 @@
 learning-credentials
 ====================
 
-A pluggable service for preparing Open edX certificates.
+A pluggable service for preparing Open edX credentials.
 
 Contents:
 

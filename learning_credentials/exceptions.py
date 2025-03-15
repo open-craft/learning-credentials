@@ -2,8 +2,8 @@
 
 
 class AssetNotFoundError(Exception):
-    """Raised when the asset_slug is not found in the ExternalCertificateAsset model."""
+    """Raised when the asset_slug is not found in the CredentialAsset model."""
 
 
-class CertificateGenerationError(Exception):
-    """Raised when the certificate generation Celery task fails."""
+class CredentialGenerationError(Exception):
+    """Raised when the credential generation Celery task fails."""

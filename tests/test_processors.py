@@ -1,4 +1,4 @@
-"""Tests for the certificate processors."""
+"""Tests for the credential processors."""
 
 from __future__ import annotations
 

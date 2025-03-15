@@ -21,13 +21,13 @@ Status
 Context
 *******
 
-We want to issue the certificates and badges for students participating in the courses.
+We want to issue the credentials and badges for students participating in the courses.
 
-The present workflow used by one of our clients is quite complex because they generate the certificates based on the
+The present workflow used by one of our clients is quite complex because they generate the credentials based on the
 data pulled from the Open edX databases (MySQL and MongoDB). The purpose of this repository is to implement a service
 closely connected with Open edX.
 
-We want to support the following certificate types:
+We want to support the following credential types:
 
 #. Certificate of achievement
     We grant it when a student receives a passing grade in both of the following:
@@ -39,10 +39,10 @@ We want to support the following certificate types:
     We grant it when a student receives the required percentage of the completion checkmarks in the course.
 
 #. Badge of achievement/completion (temporary name)
-    Almost identical to the certificates of achievement/completion. The only difference is that we award them for
+    Almost identical to the credentials of achievement/completion. The only difference is that we award them for
     completing :ref:`Lessons <lesson>`.
 
-#. Pathway certificate
+#. Pathway credential
     We grant it when a student receives a passing grade in all courses/lessons in the :ref:`Pathway <pathway>`.
 
 #. Achievement (temporary name)
@@ -58,7 +58,7 @@ Other notes:
 
 #. We do not need to pull data in real time. This service can retrieve data periodically, but the frequency should be
    configurable per course.
-#. We need to design an interface for configuring these certificates per course. The goal is to make it as simple as
+#. We need to design an interface for configuring these credentials per course. The goal is to make it as simple as
    possible for the course authors. It will be designed in a future iteration.
 
 .. _Badges: https://edx.readthedocs.io/projects/edx-installing-configuring-and-running/en/latest/configuration/enable_badging.html
@@ -70,7 +70,7 @@ Other notes:
 Decision
 ********
 
-#. We will implement the certificates mechanism as a Django app plugin.
+#. We will implement the credentials mechanism as a Django app plugin.
 #. This plugin will be installed on the same server as the Open edX instance. It will use the same database as the
    Open edX instance to optimize the performance. This decision is made to minimize the latency that would be
    introduced by querying web APIs.
@@ -83,7 +83,7 @@ Decision
 Consequences
 ************
 
-We will stop using the built-in certificates mechanism. The goal of this repository is to have as little dependencies
+We will stop using the built-in credentials mechanism. The goal of this repository is to have as little dependencies
 from the core ``edx-platform`` as possible to make it easier to maintain and upgrade.
 
 .. This section describes the resulting context, after applying the decision. All consequences should be listed here,
