@@ -1,8 +1,8 @@
 """
-This module contains processors for certificate criteria.
+This module contains processors for credential criteria.
 
 The functions prefixed with `retrieve_` are automatically detected by the admin page and are used to retrieve the
-IDs of the users that meet the criteria for the certificate type.
+IDs of the users that meet the criteria for the credential type.
 
 We will move this module to an external repository (a plugin).
 """
@@ -98,7 +98,7 @@ def _are_grades_passing_criteria(
     :raises ValueError: If a category weight is not found.
     """
     # If user does not have a grade for a category (except for the "total" category), it means that they did not
-    # attempt it. Therefore, they should not be eligible for the certificate.
+    # attempt it. Therefore, they should not be eligible for the credential.
     if not all(category in user_grades for category in required_grades if category != 'total'):
         return False
 
@@ -120,7 +120,7 @@ def retrieve_subsection_grades(course_id: CourseKey, options: dict[str, Any]) ->
     Retrieve the users that have passing grades in all required categories.
 
     :param course_id: The course ID.
-    :param options: The custom options for the certificate.
+    :param options: The custom options for the credential.
     :returns: The IDs of the users that have passing grades in all required categories.
 
     Options:

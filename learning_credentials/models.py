@@ -23,7 +23,7 @@ from model_utils.models import TimeStampedModel
 from opaque_keys.edx.django.models import CourseKeyField
 
 from learning_credentials.compat import get_course_name
-from learning_credentials.exceptions import AssetNotFoundError, CertificateGenerationError
+from learning_credentials.exceptions import AssetNotFoundError, CredentialGenerationError
 
 if TYPE_CHECKING:  # pragma: no cover
     from django.core.files import File
@@ -33,19 +33,19 @@ if TYPE_CHECKING:  # pragma: no cover
 log = logging.getLogger(__name__)
 
 
-class ExternalCertificateType(TimeStampedModel):
+class CredentialType(TimeStampedModel):
     """
-    Model to store global certificate configurations for each type.
+    Model to store global credential configurations for each type.
 
     .. no_pii:
     """
 
-    name = models.CharField(max_length=255, unique=True, help_text=_('Name of the certificate type.'))
+    name = models.CharField(max_length=255, unique=True, help_text=_('Name of the credential type.'))
     retrieval_func = models.CharField(max_length=200, help_text=_('A name of the function to retrieve eligible users.'))
-    generation_func = models.CharField(max_length=200, help_text=_('A name of the function to generate certificates.'))
+    generation_func = models.CharField(max_length=200, help_text=_('A name of the function to generate credentials.'))
     custom_options = jsonfield.JSONField(default=dict, blank=True, help_text=_('Custom options for the functions.'))
 
-    # TODO: Document how to add custom functions to the certificate generation pipeline.
+    # TODO: Document how to add custom functions to the credential generation pipeline.
 
     def __str__(self):
         """Get a string representation of this model's instance."""
@@ -68,18 +68,18 @@ class ExternalCertificateType(TimeStampedModel):
                 ) from exc
 
 
-class ExternalCertificateCourseConfiguration(TimeStampedModel):
+class CredentialConfiguration(TimeStampedModel):
     """
-    Model to store course-specific certificate configurations for each certificate type.
+    Model to store context-specific credential configurations for each credential type.
 
     .. no_pii:
     """
 
     course_id = CourseKeyField(max_length=255, help_text=_('The ID of the course.'))
-    certificate_type = models.ForeignKey(
-        ExternalCertificateType,
+    credential_type = models.ForeignKey(
+        CredentialType,
         on_delete=models.CASCADE,
-        help_text=_('Associated certificate type.'),
+        help_text=_('Associated credential type.'),
     )
     periodic_task = models.OneToOneField(
         PeriodicTask,
@@ -91,19 +91,19 @@ class ExternalCertificateCourseConfiguration(TimeStampedModel):
         blank=True,
         help_text=_(
             'Custom options for the functions. If specified, they are merged with the options defined in the '
-            'certificate type.',
+            'credential type.',
         ),
     )
 
     class Meta:  # noqa: D106
-        unique_together = (('course_id', 'certificate_type'),)
+        unique_together = (('course_id', 'credential_type'),)
 
     def __str__(self):  # noqa: D105
-        return f'{self.certificate_type.name} in {self.course_id}'
+        return f'{self.credential_type.name} in {self.course_id}'
 
     def save(self, *args, **kwargs):
-        """Create a new PeriodicTask every time a new ExternalCertificateCourseConfiguration is created."""
-        from learning_credentials.tasks import generate_certificates_for_course_task as task  # Avoid circular imports.
+        """Create a new PeriodicTask every time a new CredentialConfiguration is created."""
+        from learning_credentials.tasks import generate_credentials_for_course_task as task  # Avoid circular imports.
 
         # Use __wrapped__ to get the original function, as the task is wrapped by the @app.task decorator.
         task_path = f"{task.__wrapped__.__module__}.{task.__wrapped__.__name__}"
@@ -113,7 +113,7 @@ class ExternalCertificateCourseConfiguration(TimeStampedModel):
             self.periodic_task = PeriodicTask.objects.create(
                 enabled=False,
                 interval=schedule,
-                name=f'{self.certificate_type} in {self.course_id}',
+                name=f'{self.credential_type} in {self.course_id}',
                 task=task_path,
             )
 
@@ -121,45 +121,45 @@ class ExternalCertificateCourseConfiguration(TimeStampedModel):
 
         # Update the task on each save to prevent it from getting out of sync (e.g., after changing a task definition).
         self.periodic_task.task = task_path
-        # Update the args of the PeriodicTask to include the ID of the ExternalCertificateCourseConfiguration.
+        # Update the args of the PeriodicTask to include the ID of the CredentialConfiguration.
         self.periodic_task.args = json.dumps([self.id])
         self.periodic_task.save()
 
     # Replace the return type with `QuerySet[Self]` after migrating to Python 3.10+.
     @classmethod
-    def get_enabled_configurations(cls) -> QuerySet[ExternalCertificateCourseConfiguration]:
+    def get_enabled_configurations(cls) -> QuerySet[CredentialConfiguration]:
         """
         Get the list of enabled configurations.
 
-        :return: A list of ExternalCertificateCourseConfiguration objects.
+        :return: A list of CredentialConfiguration objects.
         """
-        return ExternalCertificateCourseConfiguration.objects.filter(periodic_task__enabled=True)
+        return CredentialConfiguration.objects.filter(periodic_task__enabled=True)
 
-    def generate_certificates(self):
-        """This method allows manual certificate generation from the Django admin."""
+    def generate_credentials(self):
+        """This method allows manual credential generation from the Django admin."""
         user_ids = self.get_eligible_user_ids()
         log.info("The following users are eligible in %s: %s", self.course_id, user_ids)
-        filtered_user_ids = self.filter_out_user_ids_with_certificates(user_ids)
+        filtered_user_ids = self.filter_out_user_ids_with_credentials(user_ids)
         log.info("The filtered users eligible in %s: %s", self.course_id, filtered_user_ids)
         for user_id in filtered_user_ids:
-            self.generate_certificate_for_user(user_id)
+            self.generate_credential_for_user(user_id)
 
-    def filter_out_user_ids_with_certificates(self, user_ids: list[int]) -> list[int]:
+    def filter_out_user_ids_with_credentials(self, user_ids: list[int]) -> list[int]:
         """
-        Filter out user IDs that already have a certificate for this course and certificate type.
+        Filter out user IDs that already have a credential for this course and credential type.
 
         :param user_ids: A list of user IDs to filter.
         :return: A list of user IDs that either:
-                 1. Do not have a certificate for this course and certificate type.
-                 2. Have such a certificate with an error status.
+                 1. Do not have a credential for this course and credential type.
+                 2. Have such a credential with an error status.
         """
-        users_ids_with_certificates = ExternalCertificate.objects.filter(
+        users_ids_with_credentials = Credential.objects.filter(
             models.Q(course_id=self.course_id),
-            models.Q(certificate_type=self.certificate_type),
-            ~(models.Q(status=ExternalCertificate.Status.ERROR)),
+            models.Q(credential_type=self.credential_type),
+            ~(models.Q(status=Credential.Status.ERROR)),
         ).values_list('user_id', flat=True)
 
-        filtered_user_ids_set = set(user_ids) - set(users_ids_with_certificates)
+        filtered_user_ids_set = set(user_ids) - set(users_ids_with_credentials)
         return list(filtered_user_ids_set)
 
     def get_eligible_user_ids(self) -> list[int]:
@@ -168,80 +168,80 @@ class ExternalCertificateCourseConfiguration(TimeStampedModel):
 
         :return: A list of user IDs.
         """
-        func_path = self.certificate_type.retrieval_func
+        func_path = self.credential_type.retrieval_func
         module_path, func_name = func_path.rsplit('.', 1)
         module = import_module(module_path)
         func = getattr(module, func_name)
 
-        custom_options = {**self.certificate_type.custom_options, **self.custom_options}
+        custom_options = {**self.credential_type.custom_options, **self.custom_options}
         return func(self.course_id, custom_options)
 
-    def generate_certificate_for_user(self, user_id: int, celery_task_id: int = 0):
+    def generate_credential_for_user(self, user_id: int, celery_task_id: int = 0):
         """
-        Celery task for processing a single user's certificate.
+        Celery task for processing a single user's credential.
 
-        This function retrieves an ExternalCertificateCourse object based on course_id and certificate_type_id,
-        retrieves the data using the retrieval_func specified in the associated ExternalCertificateType object,
+        This function retrieves an CredentialConfiguration object based on context ID and credential type,
+        retrieves the data using the retrieval_func specified in the associated CredentialType object,
         and passes this data to the function specified in the generation_func field.
 
         Args:
-            user_id: The ID of the user to process the certificate for.
+            user_id: The ID of the user to process the credential for.
             celery_task_id (optional): The ID of the Celery task that is running this function.
         """
         user = get_user_model().objects.get(id=user_id)
         # Use the name from the profile if it is not empty. Otherwise, use the first and last name.
         # We check if the profile exists because it may not exist in some cases (e.g., when a User is created manually).
         user_full_name = getattr(getattr(user, 'profile', None), 'name', f"{user.first_name} {user.last_name}")
-        custom_options = {**self.certificate_type.custom_options, **self.custom_options}
+        custom_options = {**self.credential_type.custom_options, **self.custom_options}
 
-        certificate, _ = ExternalCertificate.objects.update_or_create(
+        credential, _ = Credential.objects.update_or_create(
             user_id=user_id,
             course_id=self.course_id,
-            certificate_type=self.certificate_type.name,
+            credential_type=self.credential_type.name,
             defaults={
                 'user_full_name': user_full_name,
-                'status': ExternalCertificate.Status.GENERATING,
+                'status': Credential.Status.GENERATING,
                 'generation_task_id': celery_task_id,
             },
         )
 
         try:
-            generation_module_name, generation_func_name = self.certificate_type.generation_func.rsplit('.', 1)
+            generation_module_name, generation_func_name = self.credential_type.generation_func.rsplit('.', 1)
             generation_module = import_module(generation_module_name)
             generation_func = getattr(generation_module, generation_func_name)
 
             # Run the functions. We do not validate them here, as they are validated in the model's clean() method.
-            certificate.download_url = generation_func(self.course_id, user, certificate.uuid, custom_options)
-            certificate.status = ExternalCertificate.Status.AVAILABLE
-            certificate.save()
+            credential.download_url = generation_func(self.course_id, user, credential.uuid, custom_options)
+            credential.status = Credential.Status.AVAILABLE
+            credential.save()
         except Exception as exc:
-            certificate.status = ExternalCertificate.Status.ERROR
-            certificate.save()
-            msg = f'Failed to generate the {certificate.uuid=} for {user_id=} with {self.id=}.'
-            raise CertificateGenerationError(msg) from exc
+            credential.status = Credential.Status.ERROR
+            credential.save()
+            msg = f'Failed to generate the {credential.uuid=} for {user_id=} with {self.id=}.'
+            raise CredentialGenerationError(msg) from exc
         else:
-            # TODO: In the future, we want to check this before generating the certificate.
+            # TODO: In the future, we want to check this before generating the credential.
             #       Perhaps we could even include this in a processor to optimize it.
             if user.is_active and user.has_usable_password():
-                certificate.send_email()
+                credential.send_email()
 
 
 # noinspection PyUnusedLocal
-@receiver(post_delete, sender=ExternalCertificateCourseConfiguration)
+@receiver(post_delete, sender=CredentialConfiguration)
 def post_delete_periodic_task(sender, instance, *_args, **_kwargs):  # noqa: ANN001, ARG001
     """Delete the associated periodic task when the object is deleted."""
     if instance.periodic_task:
         instance.periodic_task.delete()
 
 
-class ExternalCertificate(TimeStampedModel):
+class Credential(TimeStampedModel):
     """
-    Model to represent each individual certificate awarded to a user for a course.
+    Model to represent each credential awarded to a user for a course.
 
-    This model contains information about the related course, the user who earned the certificate,
-    the download URL for the certificate PDF, and the associated certificate generation task.
+    This model contains information about the related course, the user who earned the credential,
+    the download URL for the credential PDF, and the associated credential generation task.
 
-    .. note:: Certificates are identified by UUIDs rather than integer keys to prevent enumeration attacks
+    .. note:: Credentials are identified by UUIDs rather than integer keys to prevent enumeration attacks
        or privacy leaks.
 
     .. pii: The User's name is stored in this model.
@@ -250,7 +250,7 @@ class ExternalCertificate(TimeStampedModel):
     """
 
     class Status(models.TextChoices):
-        """Status of the certificate generation task."""
+        """Status of the credential generation task."""
 
         GENERATING = 'generating', _('Generating')
         AVAILABLE = 'available', _('Available')
@@ -261,39 +261,39 @@ class ExternalCertificate(TimeStampedModel):
         primary_key=True,
         default=uuid.uuid4,
         editable=False,
-        help_text=_('Auto-generated UUID of the certificate'),
+        help_text=_('Auto-generated UUID of the credential'),
     )
-    user_id = models.IntegerField(help_text=_('ID of the user receiving the certificate'))
-    user_full_name = models.CharField(max_length=255, help_text=_('User receiving the certificate'))
-    course_id = CourseKeyField(max_length=255, help_text=_('ID of a course for which the certificate was issued'))
-    certificate_type = models.CharField(max_length=255, help_text=_('Type of the certificate'))
+    user_id = models.IntegerField(help_text=_('ID of the user receiving the credential'))
+    user_full_name = models.CharField(max_length=255, help_text=_('User receiving the credential'))
+    course_id = CourseKeyField(max_length=255, help_text=_('ID of a course for which the credential was issued'))
+    credential_type = models.CharField(max_length=255, help_text=_('Type of the credential'))
     status = models.CharField(
         max_length=32,
         choices=Status.choices,
         default=Status.GENERATING,
-        help_text=_('Status of the certificate generation task'),
+        help_text=_('Status of the credential generation task'),
     )
-    download_url = models.URLField(blank=True, help_text=_('URL of the generated certificate PDF (e.g., to S3)'))
-    legacy_id = models.IntegerField(null=True, help_text=_('Legacy ID of the certificate imported from another system'))
+    download_url = models.URLField(blank=True, help_text=_('URL of the generated credential PDF (e.g., to S3)'))
+    legacy_id = models.IntegerField(null=True, help_text=_('Legacy ID of the credential imported from another system'))
     generation_task_id = models.CharField(max_length=255, help_text=_('Task ID from the Celery queue'))
 
     class Meta:  # noqa: D106
-        unique_together = (('user_id', 'course_id', 'certificate_type'),)
+        unique_together = (('user_id', 'course_id', 'credential_type'),)
 
     def __str__(self):  # noqa: D105
-        return f"{self.certificate_type} for {self.user_full_name} in {self.course_id}"
+        return f"{self.credential_type} for {self.user_full_name} in {self.course_id}"
 
     def send_email(self):
-        """Send a certificate link to the student."""
+        """Send a credential link to the student."""
         course_name = get_course_name(self.course_id)
         user = get_user_model().objects.get(id=self.user_id)
         msg = Message(
-            name="certificate_generated",
+            name="credential_generated",
             app_label="learning_credentials",
             recipient=Recipient(lms_user_id=user.id, email_address=user.email),
             language='en',
             context={
-                'certificate_link': self.download_url,
+                'credential_link': self.download_url,
                 'course_name': course_name,
                 'platform_name': settings.PLATFORM_NAME,
             },
@@ -301,23 +301,23 @@ class ExternalCertificate(TimeStampedModel):
         ace.send(msg)
 
 
-class ExternalCertificateAsset(TimeStampedModel):
+class CredentialAsset(TimeStampedModel):
     """
-    A set of assets to be used in custom certificate templates.
+    A set of assets to be used in custom credential templates.
 
-    This model stores assets used during certificate generation process, such as PDF templates, images, fonts.
+    This model stores assets used during credential generation process, such as PDF templates, images, fonts.
 
     .. no_pii:
     """
 
     def template_assets_path(self, filename: str) -> str:
         """
-        Delete the file if it already exists and returns the certificate template asset file path.
+        Delete the file if it already exists and returns the credential template asset file path.
 
         :param filename: File to upload.
-        :return path: Path of asset file e.g. `certificate_template_assets/1/filename`.
+        :return path: Path of asset file e.g. `credential_template_assets/1/filename`.
         """
-        name = Path('external_certificate_template_assets') / str(self.id) / filename
+        name = Path('learning_credentials_template_assets') / str(self.id) / filename
         fullname = Path(settings.MEDIA_ROOT) / name
         if fullname.exists():
             fullname.unlink()
@@ -360,11 +360,11 @@ class ExternalCertificateAsset(TimeStampedModel):
     @classmethod
     def get_asset_by_slug(cls, asset_slug: str) -> File:
         """
-        Fetch a certificate template asset by its slug from the database.
+        Fetch a credential template asset by its slug from the database.
 
         :param asset_slug: The slug of the asset to be retrieved.
         :returns: The file associated with the asset slug.
-        :raises AssetNotFound: If no asset exists with the provided slug in the ExternalCertificateAsset database model.
+        :raises AssetNotFound: If no asset exists with the provided slug in the CredentialAsset database model.
         """
         try:
             template_asset = cls.objects.get(asset_slug=asset_slug)

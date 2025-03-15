@@ -4,10 +4,10 @@ Proxy models for backward compatibility with the old app structure.
 These will redirect to the new models in learning_credentials.
 """
 
-from learning_credentials.models import ExternalCertificate as LearningCredential
-from learning_credentials.models import ExternalCertificateAsset as LearningCredentialAsset
-from learning_credentials.models import ExternalCertificateCourseConfiguration as LearningCredentialConfiguration
-from learning_credentials.models import ExternalCertificateType as LearningCredentialType
+from learning_credentials.models import Credential as LearningCredential
+from learning_credentials.models import CredentialAsset as LearningCredentialAsset
+from learning_credentials.models import CredentialConfiguration as LearningCredentialConfiguration
+from learning_credentials.models import CredentialType as LearningCredentialType
 
 
 class ExternalCertificate(LearningCredential):

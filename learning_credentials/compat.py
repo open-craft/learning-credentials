@@ -91,7 +91,7 @@ def get_course_grade(user: User, course_id: CourseKey):  # noqa: ANN201
     return CourseGradeFactory().read(user, course_key=course_id)
 
 
-def get_localized_certificate_date() -> str:
+def get_localized_credential_date() -> str:
     """Get the localized date from Open edX."""
     # noinspection PyUnresolvedReferences,PyPackageRequirements
     from common.djangoapps.util.date_utils import strftime_localized

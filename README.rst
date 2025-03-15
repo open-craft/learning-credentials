@@ -9,7 +9,7 @@ Purpose
 
 A pluggable service for preparing Open edX credentials.
 
-This is focused on the use cases of our client but designed to be a flexible foundation for any Open edX certificate
+This is focused on the use cases of our client but designed to be a flexible foundation for any Open edX credential
 needs. It natively supports generating PDF credentials, but can be extended to support other formats.
 
 For the details about the purpose of this repository, please see the `the following ADR`_.

@@ -1,8 +1,8 @@
 """
-This module provides functions to generate certificates.
+This module provides functions to generate credentials.
 
 The functions prefixed with `generate_` are automatically detected by the admin page and are used to generate the
-certificates for the users.
+credentials for the users.
 
 We will move this module to an external repository (a plugin).
 """
@@ -23,8 +23,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from learning_credentials.compat import get_course_name, get_default_storage_url, get_localized_certificate_date
-from learning_credentials.models import ExternalCertificateAsset
+from learning_credentials.compat import get_course_name, get_default_storage_url, get_localized_credential_date
+from learning_credentials.models import CredentialAsset
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def _get_user_name(user: User) -> str:
     """
     Retrieve the user's name.
 
-    :param user: The user to generate the certificate for.
+    :param user: The user to generate the credential for.
     :return: Username.
     """
     return user.profile.name or f"{user.first_name} {user.last_name}"
@@ -53,7 +53,7 @@ def _register_font(options: dict[str, Any]) -> str:
     :returns: The font name.
     """
     if font := options.get('font'):
-        pdfmetrics.registerFont(TTFont(font, ExternalCertificateAsset.get_asset_by_slug(font)))
+        pdfmetrics.registerFont(TTFont(font, CredentialAsset.get_asset_by_slug(font)))
 
     return font or 'Helvetica'
 
@@ -64,9 +64,9 @@ def _write_text_on_template(template: any, font: str, username: str, course_name
 
     :param template: Pdf template.
     :param font: Font name.
-    :param username: The name of the user to generate the certificate for.
+    :param username: The name of the user to generate the credential for.
     :param course_name: The name of the course the learner completed.
-    :param options: A dictionary documented in the `generate_pdf_certificate` function.
+    :param options: A dictionary documented in the `generate_pdf_credential` function.
     :returns: A canvas with written data.
     """
 
@@ -112,7 +112,7 @@ def _write_text_on_template(template: any, font: str, username: str, course_name
         pdf_canvas.drawString(line_x, line_y, line)
 
     # Write the issue date.
-    issue_date = get_localized_certificate_date()
+    issue_date = get_localized_credential_date()
     pdf_canvas.setFont(font, 12)
     issue_date_color = options.get('issue_date_color', '#000')
     pdf_canvas.setFillColorRGB(*hex_to_rgb(issue_date_color))
@@ -124,79 +124,79 @@ def _write_text_on_template(template: any, font: str, username: str, course_name
     return pdf_canvas
 
 
-def _save_certificate(certificate: PdfWriter, certificate_uuid: UUID) -> str:
+def _save_credential(credential: PdfWriter, credential_uuid: UUID) -> str:
     """
     Save the final PDF file to BytesIO and upload it using Django default storage.
 
-    :param certificate: Pdf certificate.
-    :param certificate_uuid: The UUID of the certificate.
-    :returns: The URL of the saved certificate.
+    :param credential: Pdf credential.
+    :param credential_uuid: The UUID of the credential.
+    :returns: The URL of the saved credential.
     """
     # Save the final PDF file to BytesIO.
-    output_path = f'external_certificates/{certificate_uuid}.pdf'
+    output_path = f'external_certificates/{credential_uuid}.pdf'
 
     view_print_extract_permission = (
         UserAccessPermissions.PRINT
         | UserAccessPermissions.PRINT_TO_REPRESENTATION
         | UserAccessPermissions.EXTRACT_TEXT_AND_GRAPHICS
     )
-    certificate.encrypt('', secrets.token_hex(32), permissions_flag=view_print_extract_permission, algorithm='AES-256')
+    credential.encrypt('', secrets.token_hex(32), permissions_flag=view_print_extract_permission, algorithm='AES-256')
 
     pdf_bytes = io.BytesIO()
-    certificate.write(pdf_bytes)
+    credential.write(pdf_bytes)
     pdf_bytes.seek(0)  # Rewind to start.
     # Upload with Django default storage.
-    certificate_file = ContentFile(pdf_bytes.read())
+    credential_file = ContentFile(pdf_bytes.read())
     # Delete the file if it already exists.
     if default_storage.exists(output_path):
         default_storage.delete(output_path)
-    default_storage.save(output_path, certificate_file)
+    default_storage.save(output_path, credential_file)
     if isinstance(default_storage, FileSystemStorage):
         url = f"{get_default_storage_url()}{output_path}"
     else:
         url = default_storage.url(output_path)
 
-    if custom_domain := getattr(settings, 'CERTIFICATES_CUSTOM_DOMAIN', None):
-        url = f"{custom_domain}/{certificate_uuid}.pdf"
+    if custom_domain := getattr(settings, 'LEARNING_CREDENTIALS_CUSTOM_DOMAIN', None):
+        url = f"{custom_domain}/{credential_uuid}.pdf"
 
     return url
 
 
-def generate_pdf_certificate(course_id: CourseKey, user: User, certificate_uuid: UUID, options: dict[str, Any]) -> str:
+def generate_pdf_credential(course_id: CourseKey, user: User, credential_uuid: UUID, options: dict[str, Any]) -> str:
     """
-    Generate a PDF certificate.
+    Generate a PDF credential.
 
     :param course_id: The ID of the course the learner completed.
-    :param user: The user to generate the certificate for.
-    :param certificate_uuid: The UUID of the certificate to generate.
-    :param options: The custom options for the certificate.
-    :returns: The URL of the saved certificate.
+    :param user: The user to generate the credential for.
+    :param credential_uuid: The UUID of the credential to generate.
+    :param options: The custom options for the credential.
+    :returns: The URL of the saved credential.
 
     Options:
       - template: The path to the PDF template file.
       - template_two_lines: The path to the PDF template file for two-line course names.
         A two-line course name is specified by using a semicolon as a separator.
       - font: The name of the font to use.
-      - name_y: The Y coordinate of the name on the certificate (vertical position on the template).
-      - name_color: The color of the name on the certificate (hexadecimal color code).
+      - name_y: The Y coordinate of the name on the credential (vertical position on the template).
+      - name_color: The color of the name on the credential (hexadecimal color code).
       - course_name: Specify the course name to use instead of the course Display Name retrieved from Open edX.
-      - course_name_y: The Y coordinate of the course name on the certificate (vertical position on the template).
-      - course_name_color: The color of the course name on the certificate (hexadecimal color code).
-      - issue_date_y: The Y coordinate of the issue date on the certificate (vertical position on the template).
-      - issue_date_color: The color of the issue date on the certificate (hexadecimal color code).
+      - course_name_y: The Y coordinate of the course name on the credential (vertical position on the template).
+      - course_name_color: The color of the course name on the credential (hexadecimal color code).
+      - issue_date_y: The Y coordinate of the issue date on the credential (vertical position on the template).
+      - issue_date_color: The color of the issue date on the credential (hexadecimal color code).
     """
-    log.info("Starting certificate generation for user %s", user.id)
+    log.info("Starting credential generation for user %s", user.id)
 
     username = _get_user_name(user)
     course_name = options.get('course_name') or get_course_name(course_id)
 
-    # Get template from the ExternalCertificateAsset.
+    # Get template from the CredentialAsset.
     # HACK: We support two-line strings by using a semicolon as a separator.
     if ';' in course_name and (template_path := options.get('template_two_lines')):
-        template_file = ExternalCertificateAsset.get_asset_by_slug(template_path)
+        template_file = CredentialAsset.get_asset_by_slug(template_path)
         course_name = course_name.replace(';', '\n')
     else:
-        template_file = ExternalCertificateAsset.get_asset_by_slug(options['template'])
+        template_file = CredentialAsset.get_asset_by_slug(options['template'])
 
     font = _register_font(options)
 
@@ -204,16 +204,16 @@ def generate_pdf_certificate(course_id: CourseKey, user: User, certificate_uuid:
     with template_file.open('rb') as template_file:
         template = PdfReader(template_file).pages[0]
 
-        certificate = PdfWriter()
+        credential = PdfWriter()
 
         # Create a new canvas, prepare the page and write the data
         pdf_canvas = _write_text_on_template(template, font, username, course_name, options)
 
         overlay_pdf = PdfReader(io.BytesIO(pdf_canvas.getpdfdata()))
         template.merge_page(overlay_pdf.pages[0])
-        certificate.add_page(template)
+        credential.add_page(template)
 
-        url = _save_certificate(certificate, certificate_uuid)
+        url = _save_credential(credential, credential_uuid)
 
-        log.info("Certificate saved to %s", url)
+        log.info("Credential saved to %s", url)
     return url

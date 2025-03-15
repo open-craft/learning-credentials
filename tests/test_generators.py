@@ -1,4 +1,4 @@
-"""This module contains unit tests for the generate_pdf_certificate function."""
+"""This module contains unit tests for the generator functions."""
 
 from __future__ import annotations
 
@@ -19,9 +19,9 @@ from pypdf.constants import UserAccessPermissions
 from learning_credentials.generators import (
     _get_user_name,
     _register_font,
-    _save_certificate,
+    _save_credential,
     _write_text_on_template,
-    generate_pdf_certificate,
+    generate_pdf_credential,
 )
 
 
@@ -38,7 +38,7 @@ def test_get_user_name():
     assert _get_user_name(user) == "First Last"
 
 
-@patch("learning_credentials.generators.ExternalCertificateAsset.get_asset_by_slug")
+@patch("learning_credentials.generators.CredentialAsset.get_asset_by_slug")
 def test_register_font_without_custom_font(mock_get_asset_by_slug: Mock):
     """Test the _register_font falls back to the default font when no custom font is specified."""
     options = {}
@@ -46,7 +46,7 @@ def test_register_font_without_custom_font(mock_get_asset_by_slug: Mock):
     mock_get_asset_by_slug.assert_not_called()
 
 
-@patch("learning_credentials.generators.ExternalCertificateAsset.get_asset_by_slug")
+@patch("learning_credentials.generators.CredentialAsset.get_asset_by_slug")
 @patch('learning_credentials.generators.TTFont')
 @patch("learning_credentials.generators.pdfmetrics.registerFont")
 def test_register_font_with_custom_font(mock_register_font: Mock, mock_font_class: Mock, mock_get_asset_by_slug: Mock):
@@ -103,7 +103,7 @@ def test_write_text_on_template(mock_canvas_class: Mock, course_name: str, optio
     template_mock.mediabox = [0, 0, template_width, template_height]
 
     # Call the function with test parameters and mocks
-    with patch('learning_credentials.generators.get_localized_certificate_date', return_value=test_date):
+    with patch('learning_credentials.generators.get_localized_credential_date', return_value=test_date):
         _write_text_on_template(template_mock, font, username, course_name, options)
 
     # Verifying that Canvas was the correct pagesize.
@@ -165,14 +165,14 @@ def test_write_text_on_template(mock_canvas_class: Mock, course_name: str, optio
 )
 @patch('learning_credentials.generators.secrets.token_hex', return_value='test_token')
 @patch('learning_credentials.generators.ContentFile', autospec=True)
-def test_save_certificate(mock_contentfile: Mock, mock_token_hex: Mock, storage: DefaultStorage | Mock):
-    """Test the _save_certificate function."""
-    # Mock the certificate.
-    certificate = Mock(spec=PdfWriter)
-    certificate_uuid = uuid4()
-    output_path = f'external_certificates/{certificate_uuid}.pdf'
+def test_save_credential(mock_contentfile: Mock, mock_token_hex: Mock, storage: DefaultStorage | Mock):
+    """Test the _save_credential function."""
+    # Mock the credential.
+    credential = Mock(spec=PdfWriter)
+    credential_uuid = uuid4()
+    output_path = f'external_certificates/{credential_uuid}.pdf'
     pdf_bytes = io.BytesIO()
-    certificate.write.return_value = pdf_bytes
+    credential.write.return_value = pdf_bytes
     content_file = ContentFile(pdf_bytes.getvalue())
     mock_contentfile.return_value = content_file
 
@@ -185,7 +185,7 @@ def test_save_certificate(mock_contentfile: Mock, mock_token_hex: Mock, storage:
 
     # Run the function.
     with patch('learning_credentials.generators.default_storage', storage):
-        url = _save_certificate(certificate, certificate_uuid)
+        url = _save_credential(credential, credential_uuid)
 
     # Check the calls in a mocked storage.
     if isinstance(storage, Mock):
@@ -202,18 +202,18 @@ def test_save_certificate(mock_contentfile: Mock, mock_token_hex: Mock, storage:
     else:
         assert url == f'/{output_path}'
 
-    # Check the calls to certificate.encrypt
-    certificate.encrypt.assert_called_once_with(
+    # Check the calls to credential.encrypt
+    credential.encrypt.assert_called_once_with(
         '',
         mock_token_hex(),
         permissions_flag=expected_pdf_permissions,
         algorithm='AES-256',
     )
 
-    # Allow specifying a custom domain for certificates.
-    with override_settings(CERTIFICATES_CUSTOM_DOMAIN='https://example2.com'):
-        url = _save_certificate(certificate, certificate_uuid)
-        assert url == f'https://example2.com/{certificate_uuid}.pdf'
+    # Allow specifying a custom domain for credentials.
+    with override_settings(LEARNING_CREDENTIALS_CUSTOM_DOMAIN='https://example2.com'):
+        url = _save_credential(credential, credential_uuid)
+        assert url == f'https://example2.com/{credential_uuid}.pdf'
 
 
 @pytest.mark.parametrize(
@@ -237,7 +237,7 @@ def test_save_certificate(mock_contentfile: Mock, mock_token_hex: Mock, storage:
     ],
 )
 @patch(
-    'learning_credentials.generators.ExternalCertificateAsset.get_asset_by_slug',
+    'learning_credentials.generators.CredentialAsset.get_asset_by_slug',
     return_value=Mock(
         open=Mock(
             return_value=Mock(
@@ -256,9 +256,9 @@ def test_save_certificate(mock_contentfile: Mock, mock_token_hex: Mock, storage:
     'learning_credentials.generators._write_text_on_template',
     return_value=Mock(getpdfdata=Mock(return_value=b'pdf_data')),
 )
-@patch('learning_credentials.generators._save_certificate', return_value='certificate_url')
-def test_generate_pdf_certificate(  # noqa: PLR0913
-    mock_save_certificate: Mock,
+@patch('learning_credentials.generators._save_credential', return_value='credential_url')
+def test_generate_pdf_credential(  # noqa: PLR0913
+    mock_save_credential: Mock,
     mock_write_text_on_template: Mock,
     mock_pdf_writer: Mock,
     mock_pdf_reader: Mock,
@@ -271,14 +271,14 @@ def test_generate_pdf_certificate(  # noqa: PLR0913
     expected_template_slug: str,
     expected_course_name: str,
 ):
-    """Test the generate_pdf_certificate function."""
+    """Test the generate_pdf_credential function."""
     course_id = CourseKey.from_string('course-v1:edX+DemoX+Demo_Course')
     user = Mock()
     mock_get_course_name.return_value = course_name
 
-    result = generate_pdf_certificate(course_id, user, Mock(), options)
+    result = generate_pdf_credential(course_id, user, Mock(), options)
 
-    assert result == 'certificate_url'
+    assert result == 'credential_url'
     mock_get_asset_by_slug.assert_called_with(expected_template_slug)
     mock_get_user_name.assert_called_once_with(user)
     if options.get('course_name'):
@@ -294,4 +294,4 @@ def test_generate_pdf_certificate(  # noqa: PLR0913
     assert args[-2] == expected_course_name
     assert args[-1] == options
 
-    mock_save_certificate.assert_called_once()
+    mock_save_credential.assert_called_once()
