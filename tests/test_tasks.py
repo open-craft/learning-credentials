@@ -1,10 +1,10 @@
-"""Tests for the openedx-certificates Celery tasks."""
+"""Tests for the learning-credentials Celery tasks."""
 
 from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 
-from openedx_certificates.tasks import (
+from learning_credentials.tasks import (
     generate_all_certificates_task,
     generate_certificate_for_user_task,
     generate_certificates_for_course_task,
@@ -19,9 +19,9 @@ def test_generate_certificate_for_user():
     task_id = 789
 
     with (
-        patch('openedx_certificates.models.ExternalCertificateCourseConfiguration.objects.get') as mock_get,
+        patch('learning_credentials.models.ExternalCertificateCourseConfiguration.objects.get') as mock_get,
         patch(
-            'openedx_certificates.tasks.generate_certificate_for_user_task',
+            'learning_credentials.tasks.generate_certificate_for_user_task',
         ) as mock_task,
     ):
         mock_config = Mock()
@@ -45,9 +45,9 @@ def test_generate_certificates_for_course_with_filtering():
     filtered_user_ids = [1, 3]  # User IDs after filtering (e.g., users 2 and 4 already have certificates)
 
     with (
-        patch('openedx_certificates.models.ExternalCertificateCourseConfiguration.objects.get') as mock_get,
+        patch('learning_credentials.models.ExternalCertificateCourseConfiguration.objects.get') as mock_get,
         patch(
-            'openedx_certificates.tasks.generate_certificate_for_user_task.delay',
+            'learning_credentials.tasks.generate_certificate_for_user_task.delay',
         ) as mock_delay,
     ):
         mock_config = Mock()
@@ -76,10 +76,10 @@ def test_generate_all_certificates():
 
     with (
         patch(
-            'openedx_certificates.models.ExternalCertificateCourseConfiguration.get_enabled_configurations',
+            'learning_credentials.models.ExternalCertificateCourseConfiguration.get_enabled_configurations',
             return_value=mock_queryset,
         ),
-        patch('openedx_certificates.tasks.generate_certificates_for_course_task.delay') as mock_delay,
+        patch('learning_credentials.tasks.generate_certificates_for_course_task.delay') as mock_delay,
     ):
         generate_all_certificates_task()
 

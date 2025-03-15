@@ -1,4 +1,4 @@
-"""Tests for the `openedx-certificates` models."""
+"""Tests for the `learning-credentials` models."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django_celery_beat.models import PeriodicTask
 
-from openedx_certificates.exceptions import CertificateGenerationError
-from openedx_certificates.models import (
+from learning_credentials.exceptions import CertificateGenerationError
+from learning_credentials.models import (
     ExternalCertificate,
     ExternalCertificateCourseConfiguration,
     ExternalCertificateType,
@@ -103,7 +103,7 @@ class TestExternalCertificateCourseConfiguration:
         assert periodic_task.enabled is False
         assert periodic_task.name == str(self.course_config)
         assert periodic_task.args == f'[{self.course_config.id}]'
-        assert periodic_task.task == 'openedx_certificates.tasks.generate_certificates_for_course_task'
+        assert periodic_task.task == 'learning_credentials.tasks.generate_certificates_for_course_task'
 
     @pytest.mark.django_db
     def test_periodic_task_is_deleted_on_deletion(self):
@@ -266,7 +266,7 @@ class TestExternalCertificateCourseConfiguration:
         mock_send_email.assert_called_once()
 
     @pytest.mark.django_db
-    @patch('openedx_certificates.models.import_module')
+    @patch('learning_credentials.models.import_module')
     def test_generate_certificate_for_user_with_exception(self, mock_module: Mock):
         """Test the generate_certificate_for_user handles the case when the generation function raises an exception."""
         user = UserFactory.create()

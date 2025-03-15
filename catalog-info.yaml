@@ -4,8 +4,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: ""
 metadata:
-  name: openedx-certificates
-  description: A pluggable service for preparing Open edX certificates.
+  name: learning-credentials
+  description: A pluggable service for preparing Open edX credentials.
   annotations:
     # (Optional) Annotation keys and values can be whatever you want.
     # We use it in Open edX repos to have a comma-separated list of GitHub user

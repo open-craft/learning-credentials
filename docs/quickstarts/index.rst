@@ -24,7 +24,7 @@ See the following diagram for a quick overview of the certificate generation pro
 Preparations
 ============
 
-1. Go to ``Django admin -> Openedx_Certificates``.
+1. Go to ``Django admin -> learning_credentials``.
 2. Go to the ``External certificate assets`` section and add your certificate template.
    You should also add all the assets that are used in the template (images, fonts, etc.).
 

@@ -1,9 +1,9 @@
-.. openedx-certificates documentation top level file, created by
+.. learning-credentials documentation top level file, created by
    sphinx-quickstart on Thu Aug 17 10:26:09 2023.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-openedx-certificates
+learning-credentials
 ====================
 
 A pluggable service for preparing Open edX certificates.

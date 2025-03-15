@@ -34,6 +34,7 @@ INSTALLED_APPS = (
     'completion_aggregator',
     'django_celery_beat',
     'openedx_certificates',
+    'learning_credentials',
     'django_object_actions',
     'event_routing_backends',
 )
@@ -44,10 +45,10 @@ MIGRATION_MODULES = {
 }
 
 LOCALE_PATHS = [
-    root(Path('openedx_certificates/conf/locale')),
+    root(Path('learning_credentials/conf/locale')),
 ]
 
-ROOT_URLCONF = 'openedx_certificates.urls'
+ROOT_URLCONF = 'learning_credentials.urls'
 
 SECRET_KEY = 'insecure-secret-key'  # noqa: S105
 

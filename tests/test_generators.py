@@ -16,7 +16,7 @@ from opaque_keys.edx.keys import CourseKey
 from pypdf import PdfWriter
 from pypdf.constants import UserAccessPermissions
 
-from openedx_certificates.generators import (
+from learning_credentials.generators import (
     _get_user_name,
     _register_font,
     _save_certificate,
@@ -38,7 +38,7 @@ def test_get_user_name():
     assert _get_user_name(user) == "First Last"
 
 
-@patch("openedx_certificates.generators.ExternalCertificateAsset.get_asset_by_slug")
+@patch("learning_credentials.generators.ExternalCertificateAsset.get_asset_by_slug")
 def test_register_font_without_custom_font(mock_get_asset_by_slug: Mock):
     """Test the _register_font falls back to the default font when no custom font is specified."""
     options = {}
@@ -46,9 +46,9 @@ def test_register_font_without_custom_font(mock_get_asset_by_slug: Mock):
     mock_get_asset_by_slug.assert_not_called()
 
 
-@patch("openedx_certificates.generators.ExternalCertificateAsset.get_asset_by_slug")
-@patch('openedx_certificates.generators.TTFont')
-@patch("openedx_certificates.generators.pdfmetrics.registerFont")
+@patch("learning_credentials.generators.ExternalCertificateAsset.get_asset_by_slug")
+@patch('learning_credentials.generators.TTFont')
+@patch("learning_credentials.generators.pdfmetrics.registerFont")
 def test_register_font_with_custom_font(mock_register_font: Mock, mock_font_class: Mock, mock_get_asset_by_slug: Mock):
     """Test the _register_font registers the custom font when specified."""
     custom_font = "MyFont"
@@ -85,7 +85,7 @@ def test_register_font_with_custom_font(mock_register_font: Mock, mock_font_clas
         ('Programming\n101\nAdvanced Programming', {}, {}),  # Multiline course name.
     ],
 )
-@patch('openedx_certificates.generators.canvas.Canvas', return_value=Mock(stringWidth=Mock(return_value=10)))
+@patch('learning_credentials.generators.canvas.Canvas', return_value=Mock(stringWidth=Mock(return_value=10)))
 def test_write_text_on_template(mock_canvas_class: Mock, course_name: str, options: dict[str, int], expected: dict):
     """Test the _write_text_on_template function."""
     username = 'John Doe'
@@ -103,7 +103,7 @@ def test_write_text_on_template(mock_canvas_class: Mock, course_name: str, optio
     template_mock.mediabox = [0, 0, template_width, template_height]
 
     # Call the function with test parameters and mocks
-    with patch('openedx_certificates.generators.get_localized_certificate_date', return_value=test_date):
+    with patch('learning_credentials.generators.get_localized_certificate_date', return_value=test_date):
         _write_text_on_template(template_mock, font, username, course_name, options)
 
     # Verifying that Canvas was the correct pagesize.
@@ -163,8 +163,8 @@ def test_write_text_on_template(mock_canvas_class: Mock, course_name: str, optio
         (Mock(spec=FileSystemStorage, exists=Mock(return_value=True))),
     ],
 )
-@patch('openedx_certificates.generators.secrets.token_hex', return_value='test_token')
-@patch('openedx_certificates.generators.ContentFile', autospec=True)
+@patch('learning_credentials.generators.secrets.token_hex', return_value='test_token')
+@patch('learning_credentials.generators.ContentFile', autospec=True)
 def test_save_certificate(mock_contentfile: Mock, mock_token_hex: Mock, storage: DefaultStorage | Mock):
     """Test the _save_certificate function."""
     # Mock the certificate.
@@ -184,7 +184,7 @@ def test_save_certificate(mock_contentfile: Mock, mock_token_hex: Mock, storage:
     )
 
     # Run the function.
-    with patch('openedx_certificates.generators.default_storage', storage):
+    with patch('learning_credentials.generators.default_storage', storage):
         url = _save_certificate(certificate, certificate_uuid)
 
     # Check the calls in a mocked storage.
@@ -237,7 +237,7 @@ def test_save_certificate(mock_contentfile: Mock, mock_token_hex: Mock, storage:
     ],
 )
 @patch(
-    'openedx_certificates.generators.ExternalCertificateAsset.get_asset_by_slug',
+    'learning_credentials.generators.ExternalCertificateAsset.get_asset_by_slug',
     return_value=Mock(
         open=Mock(
             return_value=Mock(
@@ -247,16 +247,16 @@ def test_save_certificate(mock_contentfile: Mock, mock_token_hex: Mock, storage:
         ),
     ),
 )
-@patch('openedx_certificates.generators._get_user_name')
-@patch('openedx_certificates.generators.get_course_name')
-@patch('openedx_certificates.generators._register_font')
-@patch('openedx_certificates.generators.PdfReader')
-@patch('openedx_certificates.generators.PdfWriter')
+@patch('learning_credentials.generators._get_user_name')
+@patch('learning_credentials.generators.get_course_name')
+@patch('learning_credentials.generators._register_font')
+@patch('learning_credentials.generators.PdfReader')
+@patch('learning_credentials.generators.PdfWriter')
 @patch(
-    'openedx_certificates.generators._write_text_on_template',
+    'learning_credentials.generators._write_text_on_template',
     return_value=Mock(getpdfdata=Mock(return_value=b'pdf_data')),
 )
-@patch('openedx_certificates.generators._save_certificate', return_value='certificate_url')
+@patch('learning_credentials.generators._save_certificate', return_value='certificate_url')
 def test_generate_pdf_certificate(  # noqa: PLR0913
     mock_save_certificate: Mock,
     mock_write_text_on_template: Mock,

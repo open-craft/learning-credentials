@@ -1,4 +1,4 @@
-"""Custom exceptions for the openedx-certificates app."""
+"""Custom exceptions for the learning-credentials app."""
 
 
 class AssetNotFoundError(Exception):

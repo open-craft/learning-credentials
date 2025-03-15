@@ -1,4 +1,4 @@
-"""Admin page configuration for the openedx-certificates app."""
+"""Admin page configuration for the learning-credentials app."""
 
 from __future__ import annotations
 
@@ -88,13 +88,13 @@ class ExternalCertificateTypeAdminForm(forms.ModelForm, DocstringOptionsMixin):
         """Initializes the choices for the retrieval and generation function selection fields."""
         super().__init__(*args, **kwargs)
         self.fields['retrieval_func'].choices = self._available_functions(
-            'openedx_certificates.processors',
+            'learning_credentials.processors',
             'retrieve_',
         )
         if self.instance.retrieval_func:
             self.fields['retrieval_func'].help_text = self._get_docstring_custom_options(self.instance.retrieval_func)
         self.fields['generation_func'].choices = self._available_functions(
-            'openedx_certificates.generators',
+            'learning_credentials.generators',
             'generate_',
         )
         if self.instance.generation_func:

@@ -23,8 +23,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from openedx_certificates.compat import get_course_name, get_default_storage_url, get_localized_certificate_date
-from openedx_certificates.models import ExternalCertificateAsset
+from learning_credentials.compat import get_course_name, get_default_storage_url, get_localized_certificate_date
+from learning_credentials.models import ExternalCertificateAsset
 
 log = logging.getLogger(__name__)
 
