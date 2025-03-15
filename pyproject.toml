@@ -1,5 +1,5 @@
 [tool.coverage.run]
-include = ['openedx_certificates/**']
+include = ['learning_credentials/**']
 omit = ['*/migrations/*', 'tests/*']
 plugins = ['django_coverage_plugin']
 
@@ -126,5 +126,5 @@ filterwarnings = [
     "ignore:'cgi' is deprecated:DeprecationWarning",
 ]
 DJANGO_SETTINGS_MODULE = "test_settings"
-addopts = "--cov openedx_certificates --cov tests --cov-report term-missing --cov-report xml"
+addopts = "--cov learning_credentials --cov tests --cov-report term-missing --cov-report xml"
 norecursedirs = ".* docs requirements site-packages"

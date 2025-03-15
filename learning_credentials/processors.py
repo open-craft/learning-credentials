@@ -17,7 +17,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
-from openedx_certificates.compat import (
+from learning_credentials.compat import (
     get_course_enrollments,
     get_course_grade,
     get_course_grading_policy,

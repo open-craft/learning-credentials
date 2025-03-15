@@ -1,4 +1,4 @@
-openedx-certificates
+learning-credentials
 ####################
 
 |pypi-badge| |ci-badge| |codecov-badge| |doc-badge| |pyversions-badge|
@@ -7,21 +7,21 @@ openedx-certificates
 Purpose
 *******
 
-A pluggable service for preparing Open edX certificates.
+A pluggable service for preparing Open edX credentials.
 
 This is focused on the use cases of our client but designed to be a flexible foundation for any Open edX certificate
-needs. It natively supports generating PDF certificates, but can be extended to support other formats.
+needs. It natively supports generating PDF credentials, but can be extended to support other formats.
 
 For the details about the purpose of this repository, please see the `the following ADR`_.
 
-.. _the following ADR: https://openedx-certificates.readthedocs.io/en/latest/decisions/0001-purpose-of-this-repo.html
+.. _the following ADR: https://learning-credentials.readthedocs.io/en/latest/decisions/0001-purpose-of-this-repo.html
 
 Documentation
 *************
 
 Start by going through `the documentation`_.
 
-.. _the documentation: https://openedx-certificates.readthedocs.io/en/latest
+.. _the documentation: https://learning-credentials.readthedocs.io/en/latest
 
 Getting Help
 ************
@@ -37,7 +37,7 @@ For anything non-trivial, the best path is to open an issue in this
 repository with as many details about the issue you are facing as you
 can provide.
 
-https://github.com/open-craft/openedx-certificates/issues
+https://github.com/open-craft/learning-credentials/issues
 
 For more information about these options, see the `Getting Help <https://openedx.org/getting-help>`__ page.
 
@@ -81,35 +81,35 @@ The assigned maintainers for this component and other project details may be
 found in `Backstage`_. Backstage pulls this data from the ``catalog-info.yaml``
 file in this repo.
 
-.. _Backstage: https://backstage.openedx.org/catalog/default/component/openedx-certificates
+.. _Backstage: https://backstage.openedx.org/catalog/default/component/learning-credentials
 
 Reporting Security Issues
 *************************
 
 Please do not report security issues in public. Please email security@openedx.org.
 
-.. |pypi-badge| image:: https://img.shields.io/pypi/v/openedx-certificates.svg
-    :target: https://pypi.python.org/pypi/openedx-certificates/
+.. |pypi-badge| image:: https://img.shields.io/pypi/v/learning-credentials.svg
+    :target: https://pypi.python.org/pypi/learning-credentials/
     :alt: PyPI
 
-.. |ci-badge| image:: https://github.com/open-craft/openedx-certificates/workflows/Python%20CI/badge.svg?branch=main
-    :target: https://github.com/open-craft/openedx-certificates/actions
+.. |ci-badge| image:: https://github.com/open-craft/learning-credentials/workflows/Python%20CI/badge.svg?branch=main
+    :target: https://github.com/open-craft/learning-credentials/actions
     :alt: CI
 
-.. |codecov-badge| image:: https://codecov.io/github/open-craft/openedx-certificates/coverage.svg?branch=main
-    :target: https://codecov.io/github/open-craft/openedx-certificates?branch=main
+.. |codecov-badge| image:: https://codecov.io/github/open-craft/learning-credentials/coverage.svg?branch=main
+    :target: https://codecov.io/github/open-craft/learning-credentials?branch=main
     :alt: Codecov
 
-.. |doc-badge| image:: https://readthedocs.org/projects/openedx-certificates/badge/?version=latest
-    :target: https://openedx-certificates.readthedocs.io/en/latest
+.. |doc-badge| image:: https://readthedocs.org/projects/learning-credentials/badge/?version=latest
+    :target: https://learning-credentials.readthedocs.io/en/latest
     :alt: Documentation
 
-.. |pyversions-badge| image:: https://img.shields.io/pypi/pyversions/openedx-certificates.svg
-    :target: https://pypi.python.org/pypi/openedx-certificates/
+.. |pyversions-badge| image:: https://img.shields.io/pypi/pyversions/learning-credentials.svg
+    :target: https://pypi.python.org/pypi/learning-credentials/
     :alt: Supported Python versions
 
-.. |license-badge| image:: https://img.shields.io/github/license/open-craft/openedx-certificates.svg
-    :target: https://github.com/open-craft/openedx-certificates/blob/main/LICENSE.txt
+.. |license-badge| image:: https://img.shields.io/github/license/open-craft/learning-credentials.svg
+    :target: https://github.com/open-craft/learning-credentials/blob/main/LICENSE.txt
     :alt: License
 
 .. |status-badge| image:: https://img.shields.io/badge/Status-Experimental-yellow
@@ -117,5 +117,5 @@ Please do not report security issues in public. Please email security@openedx.or
 
 .. https://githubnext.com/projects/repo-visualization/
 .. |visualization-badge| image:: https://img.shields.io/badge/Repo%20Visualization-8A2BE2
-    :target: https://mango-dune-07a8b7110.1.azurestaticapps.net/?repo=open-craft/openedx-certificates
+    :target: https://mango-dune-07a8b7110.1.azurestaticapps.net/?repo=open-craft/learning-credentials
     :alt: Visualization

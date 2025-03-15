@@ -9,7 +9,7 @@ from django.http import QueryDict
 from opaque_keys.edx.keys import CourseKey
 
 # noinspection PyProtectedMember
-from openedx_certificates.processors import (
+from learning_credentials.processors import (
     _are_grades_passing_criteria,
     _get_category_weights,
     _get_grades_by_format,
@@ -20,7 +20,7 @@ from openedx_certificates.processors import (
 
 
 @patch(
-    'openedx_certificates.processors.get_course_grading_policy',
+    'learning_credentials.processors.get_course_grading_policy',
     return_value=[{'type': 'Homework', 'weight': 0.15}, {'type': 'Exam', 'weight': 0.85}],
 )
 def test_get_category_weights(mock_get_course_grading_policy: Mock):
@@ -30,8 +30,8 @@ def test_get_category_weights(mock_get_course_grading_policy: Mock):
     mock_get_course_grading_policy.assert_called_once_with(course_id)
 
 
-@patch('openedx_certificates.processors.prefetch_course_grades')
-@patch('openedx_certificates.processors.get_course_grade')
+@patch('learning_credentials.processors.prefetch_course_grades')
+@patch('learning_credentials.processors.get_course_grade')
 def test_get_grades_by_format(mock_get_course_grade: Mock, mock_prefetch_course_grades: Mock):
     """Test that grades are retrieved for each user and categorized by assignment types."""
     course_id = Mock(spec=CourseKey)
@@ -144,10 +144,10 @@ def test_are_grades_passing_criteria_invalid_grade_category():
         )
 
 
-@patch('openedx_certificates.processors.get_course_enrollments')
-@patch('openedx_certificates.processors._get_grades_by_format')
-@patch('openedx_certificates.processors._get_category_weights')
-@patch('openedx_certificates.processors._are_grades_passing_criteria')
+@patch('learning_credentials.processors.get_course_enrollments')
+@patch('learning_credentials.processors._get_grades_by_format')
+@patch('learning_credentials.processors._get_category_weights')
+@patch('learning_credentials.processors._are_grades_passing_criteria')
 def test_retrieve_subsection_grades(
     mock_are_grades_passing_criteria: Mock,
     mock_get_category_weights: Mock,
@@ -197,9 +197,9 @@ def test_prepare_request_to_completion_aggregator():
     url = '/test_url/'
 
     with (
-        patch('openedx_certificates.processors.get_user_model') as mock_get_user_model,
+        patch('learning_credentials.processors.get_user_model') as mock_get_user_model,
         patch(
-            'openedx_certificates.processors.CompletionDetailView',
+            'learning_credentials.processors.CompletionDetailView',
         ) as mock_view_class,
     ):
         staff_user = Mock(is_staff=True)
@@ -219,8 +219,8 @@ def test_prepare_request_to_completion_aggregator():
         assert view.request.query_params.urlencode() == query_params_qdict.urlencode()
 
 
-@patch('openedx_certificates.processors._prepare_request_to_completion_aggregator')
-@patch('openedx_certificates.processors.get_user_model')
+@patch('learning_credentials.processors._prepare_request_to_completion_aggregator')
+@patch('learning_credentials.processors.get_user_model')
 def test_retrieve_course_completions(mock_get_user_model: Mock, mock_prepare_request_to_completion_aggregator: Mock):
     """Test that we retrieve the course completions for all users and return IDs of users who meet the criteria."""
     course_id = Mock(spec=CourseKey)

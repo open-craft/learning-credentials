@@ -1,6 +1,6 @@
 # pylint: disable=invalid-name
 """
-openedx-certificates documentation build configuration file.
+learning-credentials documentation build configuration file.
 
 This file is execfile()d with the current directory set to its
 containing dir.
@@ -39,7 +39,7 @@ def get_version(*file_paths):
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(REPO_ROOT)
 
-VERSION = get_version('../openedx_certificates', '__init__.py')
+VERSION = get_version('../learning_credentials', '__init__.py')
 # Configure Django for autodoc usage
 os.environ['DJANGO_SETTINGS_MODULE'] = 'test_settings'
 django_setup()
@@ -92,17 +92,17 @@ source_suffix = '.rst'
 top_level_doc = 'index'
 
 # General information about the project.
-project = 'openedx-certificates'
+project = 'learning-credentials'
 copyright = f'{datetime.now().year}, Axim Collaborative, Inc.'  # pylint: disable=redefined-builtin
 author = 'Axim Collaborative, Inc.'
-project_title = 'openedx-certificates'
+project_title = 'learning-credentials'
 documentation_title = f"{project_title}"
 
 # Set display_github to False if you don't want "edit on Github" button
 html_context = {
     "display_github": True,  # Integrate GitHub
     "github_user": "edx",  # Username
-    "github_repo": 'openedx-certificates',  # Repo name
+    "github_repo": 'learning-credentials',  # Repo name
     "github_version": "main",  # Version
     "conf_py_path": "/docs/",  # Path in the checkout to the docs root
 }
@@ -187,7 +187,7 @@ html_theme = 'sphinx_book_theme'
 # documentation.
 #
 html_theme_options = {
-    "repository_url": "https://github.com/open-craft/openedx-certificates",
+    "repository_url": "https://github.com/open-craft/learning-credentials",
     "repository_branch": 'main',
     "path_to_docs": "docs/",
     "home_page_in_toc": True,
@@ -224,7 +224,7 @@ html_theme_options = {
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
 #
-# html_title = 'openedx-certificates v0.1.0'
+# html_title = 'learning-credentials v0.1.0'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #
@@ -408,7 +408,7 @@ texinfo_documents = [
         documentation_title,
         author,
         project_title,
-        'A pluggable service for preparing Open edX certificates.',
+        'A pluggable service for preparing Open edX credentials.',
         'Miscellaneous',
     ),
 ]
@@ -542,8 +542,8 @@ def on_init(app):  # pylint: disable=unused-argument
             apidoc_path,
             '-o',
             docs_path,
-            os.path.join(root_path, 'openedx_certificates'),
-            os.path.join(root_path, 'openedx_certificates/migrations'),
+            os.path.join(root_path, 'learning_credentials'),
+            os.path.join(root_path, 'learning_credentials/migrations'),
         ]
     )
 

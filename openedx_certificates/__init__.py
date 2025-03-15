@@ -1,3 +1,1 @@
-"""A pluggable service for preparing Open edX certificates."""
-
-__version__ = '0.1.0'
+"""Legacy module for Open edX certificates. It exists for backward compatibility."""

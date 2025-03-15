@@ -58,8 +58,8 @@ output/*/index.html
 # Sphinx
 docs/_build
 docs/modules.rst
-docs/openedx_certificates.rst
-docs/openedx_certificates.*.rst
+docs/learning_credentials.rst
+docs/learning_credentials.*.rst
 
 # Private requirements
 requirements/private.in
@@ -69,5 +69,5 @@ requirements/private.txt
 .vscode/
 .idea/
 
-# Local certificates directory
+# Local credentials directory
 external_certificates/

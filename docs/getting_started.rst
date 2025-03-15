@@ -14,12 +14,12 @@ One Time Setup
 .. code-block:: bash
 
   # Clone the repository
-  git clone git@github.com:open-craft/openedx-certificates.git
-  cd openedx-certificates
+  git clone git@github.com:open-craft/learning-credentials.git
+  cd learning-credentials
 
   # Set up a virtualenv with the same name as the repo and activate it
   # Here's how you might do that if you have virtualenvwrapper setup.
-  mkvirtualenv -p python3.11 openedx-certificates
+  mkvirtualenv -p python3.11 learning-credentials
 
   # Install project dependencies
   make requirements
@@ -31,7 +31,7 @@ Every time you develop something in this repo
 
   # Activate the virtualenv
   # Here's how you might do that if you're using virtualenvwrapper.
-  workon openedx-certificates
+  workon learning-credentials
 
   # Grab the latest code
   git checkout main

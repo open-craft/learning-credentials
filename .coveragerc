@@ -1,7 +1,7 @@
 [run]
 branch = True
 data_file = .coverage
-source=openedx_certificates
+source=learning_credentials
 omit =
     compat.py
     test_settings.py

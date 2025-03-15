@@ -54,7 +54,7 @@ Decision
         }
 
         subgraph cluster_1 {
-            label = "openedx-certificates";
+            label = "learning-credentials";
             style=filled;
             color=lightgrey;
 

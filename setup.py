@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Package metadata for openedx_certificates."""
+"""Package metadata for learning_credentials."""
 from __future__ import annotations
 
 import os
@@ -122,7 +122,7 @@ def is_requirement(line: str) -> bool:
     return bool(line and line.strip() and not line.startswith(("-r", "#", "-e", "git+", "-c")))
 
 
-VERSION = get_version(Path('openedx_certificates/__init__.py'))
+VERSION = get_version(Path('learning_credentials/__init__.py'))
 
 if sys.argv[-1] == 'tag':
     print("Tagging the version on github:")  # noqa: T201
@@ -134,21 +134,22 @@ README = (Path(__file__).parent / 'README.rst').open(encoding="utf8").read()
 CHANGELOG = (Path(__file__).parent / 'CHANGELOG.rst').open(encoding="utf8").read()
 
 setup(
-    name='openedx-certificates',
+    name='learning-credentials',
     version=VERSION,
-    description="""A pluggable service for preparing Open edX certificates.""",
+    description="""A pluggable service for preparing Open edX credentials.""",
     long_description=README + '\n\n' + CHANGELOG,
     long_description_content_type='text/x-rst',
     author='OpenCraft',
     author_email='help@opencraft.com',
-    url='https://github.com/open-craft/openedx-certificates',
+    url='https://github.com/open-craft/learning-credentials',
     packages=find_packages(
-        include=['openedx_certificates', 'openedx_certificates.*'],
+        include=['learning_credentials', 'learning_credentials.*', 'openedx_certificates', 'openedx_certificates.*'],
         exclude=["*tests"],
     ),
     entry_points={
         "lms.djangoapp": [
-            "openedx_certificates = openedx_certificates.apps:OpenedxCertificatesConfig",
+            "learning_credentials = learning_credentials.apps:LearningCredentialsConfig",
+            "openedx_certificates = openedx_certificates.apps:OpenEdxCertificatesConfig",
         ],
     },
     include_package_data=True,

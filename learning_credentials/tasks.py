@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 
-from openedx_certificates.compat import get_celery_app
-from openedx_certificates.models import ExternalCertificateCourseConfiguration
+from learning_credentials.compat import get_celery_app
+from learning_credentials.models import ExternalCertificateCourseConfiguration
 
 app = get_celery_app()
 log = logging.getLogger(__name__)
