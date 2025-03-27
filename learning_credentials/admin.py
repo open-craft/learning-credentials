@@ -21,7 +21,7 @@ from .models import (
     CredentialConfiguration,
     CredentialType,
 )
-from .tasks import generate_credentials_for_course_task
+from .tasks import generate_credentials_for_config_task
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Generator
@@ -120,7 +120,7 @@ class CredentialAssetAdmin(admin.ModelAdmin):  # noqa: D101
 class CredentialConfigurationForm(forms.ModelForm, DocstringOptionsMixin):  # noqa: D101
     class Meta:  # noqa: D106
         model = CredentialConfiguration
-        fields = ('course_id', 'credential_type', 'custom_options')
+        fields = ('learning_context_key', 'credential_type', 'custom_options')
 
     def __init__(self, *args, **kwargs):
         """Initializes the choices for the retrieval and generation function selection fields."""
@@ -151,7 +151,7 @@ class CredentialConfigurationForm(forms.ModelForm, DocstringOptionsMixin):  # no
 @admin.register(CredentialConfiguration)
 class CredentialConfigurationAdmin(DjangoObjectActions, ReverseModelAdmin):
     """
-    Admin page for the course-specific credential configuration for each credential type.
+    Admin page for the context-specific credential configuration for each credential type.
 
     It manages the associations between configuration and its corresponding periodic task.
     The reverse inline provides a way to manage the periodic task from the configuration page.
@@ -165,9 +165,9 @@ class CredentialConfigurationAdmin(DjangoObjectActions, ReverseModelAdmin):
             {'fields': ['enabled', 'interval', 'crontab', 'clocked', 'start_time', 'expires', 'one_off']},
         ),
     ]
-    list_display = ('course_id', 'credential_type', 'enabled', 'interval')
-    search_fields = ('course_id', 'credential_type__name')
-    list_filter = ('course_id', 'credential_type')
+    list_display = ('learning_context_key', 'credential_type', 'enabled', 'interval')
+    search_fields = ('learning_context_key', 'credential_type__name')
+    list_filter = ('learning_context_key', 'credential_type')
 
     def get_inline_instances(
         self,
@@ -198,9 +198,9 @@ class CredentialConfigurationAdmin(DjangoObjectActions, ReverseModelAdmin):
         return obj.periodic_task.interval
 
     def get_readonly_fields(self, _request: HttpRequest, obj: CredentialConfiguration = None) -> tuple:
-        """Make the course_id field read-only."""
+        """Make the learning_context_key field read-only."""
         if obj:  # editing an existing object
-            return *self.readonly_fields, 'course_id', 'credential_type'
+            return *self.readonly_fields, 'learning_context_key', 'credential_type'
         return self.readonly_fields
 
     @action(label="Generate credentials")
@@ -212,7 +212,7 @@ class CredentialConfigurationAdmin(DjangoObjectActions, ReverseModelAdmin):
             _request: The request object.
             obj: The CredentialConfiguration instance.
         """
-        generate_credentials_for_course_task.delay(obj.id)
+        generate_credentials_for_config_task.delay(obj.id)
 
     change_actions = ('generate_credentials',)
 
@@ -222,7 +222,7 @@ class CredentialAdmin(admin.ModelAdmin):  # noqa: D101
     list_display = (
         'user_id',
         'user_full_name',
-        'course_id',
+        'learning_context_key',
         'credential_type',
         'status',
         'url',
@@ -234,7 +234,7 @@ class CredentialAdmin(admin.ModelAdmin):  # noqa: D101
         'created',
         'modified',
         'user_full_name',
-        'course_id',
+        'learning_context_key',
         'credential_type',
         'status',
         'url',

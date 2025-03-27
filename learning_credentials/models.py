@@ -20,7 +20,7 @@ from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import IntervalSchedule, PeriodicTask
 from edx_ace import Message, Recipient, ace
 from model_utils.models import TimeStampedModel
-from opaque_keys.edx.django.models import CourseKeyField
+from opaque_keys.edx.django.models import LearningContextKeyField
 
 from learning_credentials.compat import get_course_name
 from learning_credentials.exceptions import AssetNotFoundError, CredentialGenerationError
@@ -75,7 +75,10 @@ class CredentialConfiguration(TimeStampedModel):
     .. no_pii:
     """
 
-    course_id = CourseKeyField(max_length=255, help_text=_('The ID of the course.'))
+    learning_context_key = LearningContextKeyField(
+        max_length=255,
+        help_text=_('ID of a learning context (e.g., a course or a Learning Path).'),
+    )
     credential_type = models.ForeignKey(
         CredentialType,
         on_delete=models.CASCADE,
@@ -96,14 +99,14 @@ class CredentialConfiguration(TimeStampedModel):
     )
 
     class Meta:  # noqa: D106
-        unique_together = (('course_id', 'credential_type'),)
+        unique_together = (('learning_context_key', 'credential_type'),)
 
     def __str__(self):  # noqa: D105
-        return f'{self.credential_type.name} in {self.course_id}'
+        return f'{self.credential_type.name} in {self.learning_context_key}'
 
     def save(self, *args, **kwargs):
         """Create a new PeriodicTask every time a new CredentialConfiguration is created."""
-        from learning_credentials.tasks import generate_credentials_for_course_task as task  # Avoid circular imports.
+        from learning_credentials.tasks import generate_credentials_for_config_task as task  # Avoid circular imports.
 
         # Use __wrapped__ to get the original function, as the task is wrapped by the @app.task decorator.
         task_path = f"{task.__wrapped__.__module__}.{task.__wrapped__.__name__}"
@@ -113,7 +116,7 @@ class CredentialConfiguration(TimeStampedModel):
             self.periodic_task = PeriodicTask.objects.create(
                 enabled=False,
                 interval=schedule,
-                name=f'{self.credential_type} in {self.course_id}',
+                name=f'{self.credential_type} in {self.learning_context_key}',
                 task=task_path,
             )
 
@@ -138,9 +141,9 @@ class CredentialConfiguration(TimeStampedModel):
     def generate_credentials(self):
         """This method allows manual credential generation from the Django admin."""
         user_ids = self.get_eligible_user_ids()
-        log.info("The following users are eligible in %s: %s", self.course_id, user_ids)
+        log.info("The following users are eligible in %s: %s", self.learning_context_key, user_ids)
         filtered_user_ids = self.filter_out_user_ids_with_credentials(user_ids)
-        log.info("The filtered users eligible in %s: %s", self.course_id, filtered_user_ids)
+        log.info("The filtered users eligible in %s: %s", self.learning_context_key, filtered_user_ids)
         for user_id in filtered_user_ids:
             self.generate_credential_for_user(user_id)
 
@@ -154,7 +157,7 @@ class CredentialConfiguration(TimeStampedModel):
                  2. Have such a credential with an error status.
         """
         users_ids_with_credentials = Credential.objects.filter(
-            models.Q(course_id=self.course_id),
+            models.Q(learning_context_key=self.learning_context_key),
             models.Q(credential_type=self.credential_type),
             ~(models.Q(status=Credential.Status.ERROR)),
         ).values_list('user_id', flat=True)
@@ -174,7 +177,7 @@ class CredentialConfiguration(TimeStampedModel):
         func = getattr(module, func_name)
 
         custom_options = {**self.credential_type.custom_options, **self.custom_options}
-        return func(self.course_id, custom_options)
+        return func(self.learning_context_key, custom_options)
 
     def generate_credential_for_user(self, user_id: int, celery_task_id: int = 0):
         """
@@ -196,7 +199,7 @@ class CredentialConfiguration(TimeStampedModel):
 
         credential, _ = Credential.objects.update_or_create(
             user_id=user_id,
-            course_id=self.course_id,
+            learning_context_key=self.learning_context_key,
             credential_type=self.credential_type.name,
             defaults={
                 'user_full_name': user_full_name,
@@ -211,7 +214,7 @@ class CredentialConfiguration(TimeStampedModel):
             generation_func = getattr(generation_module, generation_func_name)
 
             # Run the functions. We do not validate them here, as they are validated in the model's clean() method.
-            credential.download_url = generation_func(self.course_id, user, credential.uuid, custom_options)
+            credential.download_url = generation_func(self.learning_context_key, user, credential.uuid, custom_options)
             credential.status = Credential.Status.AVAILABLE
             credential.save()
         except Exception as exc:
@@ -265,7 +268,10 @@ class Credential(TimeStampedModel):
     )
     user_id = models.IntegerField(help_text=_('ID of the user receiving the credential'))
     user_full_name = models.CharField(max_length=255, help_text=_('User receiving the credential'))
-    course_id = CourseKeyField(max_length=255, help_text=_('ID of a course for which the credential was issued'))
+    learning_context_key = LearningContextKeyField(
+        max_length=255,
+        help_text=_('ID of a learning context (e.g., a course or a Learning Path) for which the credential was issued'),
+    )
     credential_type = models.CharField(max_length=255, help_text=_('Type of the credential'))
     status = models.CharField(
         max_length=32,
@@ -278,14 +284,14 @@ class Credential(TimeStampedModel):
     generation_task_id = models.CharField(max_length=255, help_text=_('Task ID from the Celery queue'))
 
     class Meta:  # noqa: D106
-        unique_together = (('user_id', 'course_id', 'credential_type'),)
+        unique_together = (('user_id', 'learning_context_key', 'credential_type'),)
 
     def __str__(self):  # noqa: D105
-        return f"{self.credential_type} for {self.user_full_name} in {self.course_id}"
+        return f"{self.credential_type} for {self.user_full_name} in {self.learning_context_key}"
 
     def send_email(self):
         """Send a credential link to the student."""
-        course_name = get_course_name(self.course_id)
+        course_name = get_course_name(self.learning_context_key)
         user = get_user_model().objects.get(id=self.user_id)
         msg = Message(
             name="credential_generated",
