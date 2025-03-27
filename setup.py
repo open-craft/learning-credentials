@@ -126,7 +126,7 @@ VERSION = get_version(Path('learning_credentials/__init__.py'))
 
 if sys.argv[-1] == 'tag':
     print("Tagging the version on github:")  # noqa: T201
-    os.system(f"git tag -a {VERSION} -m 'version {VERSION}'")  # noqa: S605x
+    os.system(f"git tag -a {VERSION} -m 'version {VERSION}'")  # noqa: S605
     os.system("git push --tags")  # noqa: S605, S607
     sys.exit()
 
