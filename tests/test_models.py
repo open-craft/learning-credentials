@@ -22,14 +22,19 @@ from test_utils.factories import UserFactory
 if TYPE_CHECKING:
     from django.contrib.auth.models import User
     from django.db.models import Model
-    from opaque_keys.edx.keys import CourseKey
+    from opaque_keys.edx.keys import LearningContextKey
 
 
-def _mock_retrieval_func(_course_id: CourseKey, _options: dict[str, Any]) -> list[int]:
+def _mock_retrieval_func(_context_id: LearningContextKey, _options: dict[str, Any]) -> list[int]:
     return [1, 2, 3]
 
 
-def _mock_generation_func(_course_id: CourseKey, _user: User, _credential_uuid: UUID, _options: dict[str, Any]) -> str:
+def _mock_generation_func(
+    _context_id: LearningContextKey,
+    _user: User,
+    _credential_uuid: UUID,
+    _options: dict[str, Any],
+) -> str:
     return "test_url"
 
 
@@ -86,8 +91,8 @@ class TestCredentialConfiguration:
             retrieval_func="test_models._mock_retrieval_func",
             generation_func="test_models._mock_generation_func",
         )
-        self.course_config = CredentialConfiguration(
-            course_id="course-v1:TestX+T101+2023",
+        self.config = CredentialConfiguration(
+            learning_context_key="course-v1:TestX+T101+2023",
             credential_type=self.credential_type,
         )
 
@@ -95,33 +100,33 @@ class TestCredentialConfiguration:
     def test_periodic_task_is_auto_created(self):
         """Test that a periodic task is automatically created for the new configuration."""
         self.credential_type.save()
-        self.course_config.save()
-        self.course_config.refresh_from_db()
+        self.config.save()
+        self.config.refresh_from_db()
 
-        assert (periodic_task := self.course_config.periodic_task) is not None
+        assert (periodic_task := self.config.periodic_task) is not None
         assert periodic_task.enabled is False
-        assert periodic_task.name == str(self.course_config)
-        assert periodic_task.args == f'[{self.course_config.id}]'
-        assert periodic_task.task == 'learning_credentials.tasks.generate_credentials_for_course_task'
+        assert periodic_task.name == str(self.config)
+        assert periodic_task.args == f'[{self.config.id}]'
+        assert periodic_task.task == 'learning_credentials.tasks.generate_credentials_for_config_task'
 
     @pytest.mark.django_db
     def test_periodic_task_is_deleted_on_deletion(self):
         """Test that the periodic task is deleted when the configuration is deleted."""
         self.credential_type.save()
-        self.course_config.save()
+        self.config.save()
         assert PeriodicTask.objects.count() == 1
 
-        self.course_config.delete()
+        self.config.delete()
         assert not PeriodicTask.objects.exists()
 
     @pytest.mark.django_db
     def test_periodic_task_deletion_removes_the_configuration(self):
         """Test that the configuration is deleted when the periodic task is deleted."""
         self.credential_type.save()
-        self.course_config.save()
+        self.config.save()
         assert PeriodicTask.objects.count() == 1
 
-        self.course_config.periodic_task.delete()
+        self.config.periodic_task.delete()
         assert not CredentialConfiguration.objects.exists()
 
     @pytest.mark.django_db
@@ -135,10 +140,10 @@ class TestCredentialConfiguration:
     def test_bulk_delete(self, deleted_model: type[Model], verified_model: type[Model]):
         """Test that the bulk deletion of configurations removes the periodic tasks (and vice versa)."""
         self.credential_type.save()
-        self.course_config.save()
+        self.config.save()
 
         CredentialConfiguration(
-            course_id="course-v1:TestX+T101+2024",
+            learning_context_key="course-v1:TestX+T101+2024",
             credential_type=self.credential_type,
         ).save()
         assert PeriodicTask.objects.count() == 2
@@ -148,21 +153,21 @@ class TestCredentialConfiguration:
 
     def test_str_representation(self):
         """Test the string representation of the model."""
-        assert str(self.course_config) == f'{self.credential_type.name} in course-v1:TestX+T101+2023'
+        assert str(self.config) == f'{self.credential_type.name} in course-v1:TestX+T101+2023'
 
     def test_get_eligible_user_ids(self):
         """Test the get_eligible_user_ids method."""
-        eligible_user_ids = self.course_config.get_eligible_user_ids()
+        eligible_user_ids = self.config.get_eligible_user_ids()
         assert eligible_user_ids == [1, 2, 3]
 
     @pytest.mark.django_db
     def test_filter_out_user_ids_with_credentials(self):
         """Test the filter_out_user_ids_with_credentials method."""
         self.credential_type.save()
-        self.course_config.save()
+        self.config.save()
 
         credential_data = {
-            "course_id": self.course_config.course_id,
+            "learning_context_key": self.config.learning_context_key,
             "credential_type": self.credential_type.name,
         }
 
@@ -197,7 +202,7 @@ class TestCredentialConfiguration:
             **credential_data,
         )
 
-        filtered_users = self.course_config.filter_out_user_ids_with_credentials([1, 2, 3, 4, 6])
+        filtered_users = self.config.filter_out_user_ids_with_credentials([1, 2, 3, 4, 6])
         assert filtered_users == [3, 6]
 
     @pytest.mark.django_db
@@ -207,10 +212,10 @@ class TestCredentialConfiguration:
         user = UserFactory.create()
         task_id = 123
 
-        self.course_config.generate_credential_for_user(user.id, task_id)
+        self.config.generate_credential_for_user(user.id, task_id)
         assert Credential.objects.filter(
             user_id=user.id,
-            course_id=self.course_config.course_id,
+            learning_context_key=self.config.learning_context_key,
             credential_type=self.credential_type,
             user_full_name=f"{user.first_name} {user.last_name}",
             status=Credential.Status.AVAILABLE,
@@ -224,16 +229,16 @@ class TestCredentialConfiguration:
 
         user = UserFactory.create(is_active=False)
 
-        self.course_config.generate_credential_for_user(user.id, task_id)
-        assert Credential.objects.filter(course_id=self.course_config.course_id).count() == 2
+        self.config.generate_credential_for_user(user.id, task_id)
+        assert Credential.objects.filter(learning_context_key=self.config.learning_context_key).count() == 2
         mock_send_email.assert_called_once()
 
         user = UserFactory.create()
         user.set_unusable_password()
         user.save()
 
-        self.course_config.generate_credential_for_user(user.id, task_id)
-        assert Credential.objects.filter(course_id=self.course_config.course_id).count() == 3
+        self.config.generate_credential_for_user(user.id, task_id)
+        assert Credential.objects.filter(learning_context_key=self.config.learning_context_key).count() == 3
         mock_send_email.assert_called_once()
 
     @pytest.mark.django_db
@@ -244,7 +249,7 @@ class TestCredentialConfiguration:
 
         Credential.objects.create(
             user_id=user.id,
-            course_id=self.course_config.course_id,
+            learning_context_key=self.config.learning_context_key,
             credential_type=self.credential_type,
             user_full_name="Random Name",
             status=Credential.Status.ERROR,
@@ -252,10 +257,10 @@ class TestCredentialConfiguration:
             download_url="random_url",
         )
 
-        self.course_config.generate_credential_for_user(user.id)
+        self.config.generate_credential_for_user(user.id)
         assert Credential.objects.filter(
             user_id=user.id,
-            course_id=self.course_config.course_id,
+            learning_context_key=self.config.learning_context_key,
             credential_type=self.credential_type,
             user_full_name=f"{user.first_name} {user.last_name}",
             status=Credential.Status.AVAILABLE,
@@ -279,12 +284,12 @@ class TestCredentialConfiguration:
 
         # Call the method under test and check that it raises the correct exception.
         with pytest.raises(CredentialGenerationError) as exc:
-            self.course_config.generate_credential_for_user(user.id, task_id)
+            self.config.generate_credential_for_user(user.id, task_id)
 
         assert 'Failed to generate the' in str(exc.value)
         assert Credential.objects.filter(
             user_id=user.id,
-            course_id=self.course_config.course_id,
+            learning_context_key=self.config.learning_context_key,
             credential_type=self.credential_type,
             user_full_name=f"{user.first_name} {user.last_name}",
             status=Credential.Status.ERROR,
@@ -302,7 +307,7 @@ class TestCredential:
             uuid=uuid4(),
             user_id=1,
             user_full_name='Test User',
-            course_id='course-v1:TestX+T101+2023',
+            learning_context_key='course-v1:TestX+T101+2023',
             credential_type='Test Type',
             status=Credential.Status.GENERATING,
             download_url='http://www.test.com',
@@ -321,7 +326,7 @@ class TestCredential:
             "uuid": uuid4(),
             "user_id": 1,
             "user_full_name": 'Test User 2',
-            "course_id": 'course-v1:TestX+T101+2023',
+            "learning_context_key": 'course-v1:TestX+T101+2023',
             "credential_type": 'Test Type',
             "status": Credential.Status.GENERATING,
             "download_url": 'http://www.test2.com',
