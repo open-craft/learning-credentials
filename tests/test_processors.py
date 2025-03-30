@@ -15,6 +15,7 @@ from learning_credentials.processors import (
     _get_grades_by_format,
     _prepare_request_to_completion_aggregator,
     retrieve_course_completions,
+    retrieve_course_completions_and_grades,
     retrieve_subsection_grades,
 )
 
@@ -279,3 +280,40 @@ def test_retrieve_course_completions(mock_get_user_model: Mock, mock_prepare_req
     mock_view_page1.get.assert_called_once_with(mock_view_page1.request, str(course_id))
     mock_view_page2.get.assert_called_once_with(mock_view_page2.request, str(course_id))
     mock_user_model.objects.filter.assert_called_once_with(username__in=['user1', 'user3'])
+
+
+@pytest.mark.parametrize(
+    ('completion_users', 'grades_users', 'expected_result'),
+    [
+        ([101, 102, 103], [102, 103, 104], [102, 103]),
+        ([101, 102], [103, 104], []),
+        ([101, 102], [101, 102], [101, 102]),
+        ([101, 102], [], []),
+    ],
+    ids=[
+        "Some users pass both criteria",
+        "No overlap between eligible users",
+        "All users pass both criteria",
+        "One criteria returns no users",
+    ],
+)
+@patch("learning_credentials.processors.retrieve_subsection_grades")
+@patch("learning_credentials.processors.retrieve_course_completions")
+def test_retrieve_course_completions_and_grades(
+    mock_retrieve_course_completions: Mock,
+    mock_retrieve_subsection_grades: Mock,
+    completion_users: list[int],
+    grades_users: list[int],
+    expected_result: list[int],
+):
+    """Test that the function returns the intersection of eligible users from both criteria."""
+    course_id = Mock(spec=CourseKey)
+
+    mock_retrieve_course_completions.return_value = completion_users
+    mock_retrieve_subsection_grades.return_value = grades_users
+
+    result = retrieve_course_completions_and_grades(course_id, {})
+
+    assert result == expected_result
+    mock_retrieve_course_completions.assert_called_once_with(course_id, {})
+    mock_retrieve_subsection_grades.assert_called_once_with(course_id, {})
