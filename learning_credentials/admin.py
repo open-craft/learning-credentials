@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.utils.html import format_html
 from django_object_actions import DjangoObjectActions, action
 from django_reverse_admin import ReverseModelAdmin
+from learning_paths.keys import LearningPathKey
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 
@@ -137,15 +138,21 @@ class CredentialConfigurationForm(forms.ModelForm, DocstringOptionsMixin):  # no
 
             self.fields['custom_options'].help_text += options
 
-    def clean_course_id(self) -> CourseKey:
-        """Validate the course_id field."""
-        course_id = self.cleaned_data.get('course_id')
+    def clean_learning_context_key(self) -> str:
+        """Validate the learning_context_key field to ensure it is a valid CourseKey or LearningPathKey."""
+        learning_context_key = self.cleaned_data.get('learning_context_key')
         try:
-            CourseKey.from_string(course_id)
+            try:
+                CourseKey.from_string(learning_context_key)
+            except InvalidKeyError:
+                LearningPathKey.from_string(learning_context_key)
         except InvalidKeyError as exc:
-            msg = "Invalid course ID format. The correct format is 'course-v1:{Organization}+{Course}+{Run}'."
+            msg = (
+                "Invalid key format. Must be either a valid course key ('course-v1:{org}+{course}+{run}') "
+                "or a valid Learning Path key ('path-v1:{org}+{number}+{run}+{group}')."
+            )
             raise ValidationError(msg) from exc
-        return course_id
+        return learning_context_key
 
 
 @admin.register(CredentialConfiguration)

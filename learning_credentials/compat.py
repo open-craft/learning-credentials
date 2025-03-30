@@ -14,10 +14,12 @@ from typing import TYPE_CHECKING
 import pytz
 from celery import Celery
 from django.conf import settings
+from learning_paths.models import LearningPath
 
 if TYPE_CHECKING:  # pragma: no cover
     from django.contrib.auth.models import User
-    from opaque_keys.edx.keys import CourseKey
+    from learning_paths.keys import LearningPathKey
+    from opaque_keys.edx.keys import CourseKey, LearningContextKey
 
 
 def get_celery_app() -> Celery:
@@ -45,13 +47,28 @@ def get_course_grading_policy(course_id: CourseKey) -> dict:
     return modulestore().get_course(course_id).grading_policy["GRADER"]
 
 
-def get_course_name(course_id: CourseKey) -> str:
+def _get_course_name(course_id: CourseKey) -> str:
     """Get the course name from Open edX."""
     # noinspection PyUnresolvedReferences,PyPackageRequirements
     from openedx.core.djangoapps.content.learning_sequences.api import get_course_outline
 
     course_outline = get_course_outline(course_id)
     return (course_outline and course_outline.title) or str(course_id)
+
+
+def _get_learning_path_name(learning_path_key: LearningPathKey) -> str:
+    """Get the Learning Path name from the plugin."""
+    try:
+        return LearningPath.objects.get(key=learning_path_key).display_name
+    except LearningPath.DoesNotExist:
+        return str(learning_path_key)
+
+
+def get_learning_context_name(learning_context_key: LearningContextKey) -> str:
+    """Get the learning context (course or Learning Path) name."""
+    if learning_context_key.is_course:
+        return _get_course_name(learning_context_key)
+    return _get_learning_path_name(learning_context_key)
 
 
 def get_course_enrollments(course_id: CourseKey) -> list[User]:

@@ -22,7 +22,7 @@ from edx_ace import Message, Recipient, ace
 from model_utils.models import TimeStampedModel
 from opaque_keys.edx.django.models import LearningContextKeyField
 
-from learning_credentials.compat import get_course_name
+from learning_credentials.compat import get_learning_context_name
 from learning_credentials.exceptions import AssetNotFoundError, CredentialGenerationError
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -291,16 +291,16 @@ class Credential(TimeStampedModel):
 
     def send_email(self):
         """Send a credential link to the student."""
-        course_name = get_course_name(self.learning_context_key)
+        learning_context_name = get_learning_context_name(self.learning_context_key)
         user = get_user_model().objects.get(id=self.user_id)
         msg = Message(
-            name="credential_generated",
+            name="certificate_generated",
             app_label="learning_credentials",
             recipient=Recipient(lms_user_id=user.id, email_address=user.email),
             language='en',
             context={
-                'credential_link': self.download_url,
-                'course_name': course_name,
+                'certificate_link': self.download_url,
+                'course_name': learning_context_name,
                 'platform_name': settings.PLATFORM_NAME,
             },
         )
