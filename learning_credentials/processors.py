@@ -221,3 +221,34 @@ def retrieve_course_completions(course_id: CourseKey, options: dict[str, Any]) -
         view = _prepare_request_to_completion_aggregator(course_id, query_params.copy(), url)
 
     return list(get_user_model().objects.filter(username__in=completions).values_list('id', flat=True))
+
+
+def retrieve_course_completions_and_grades(course_id: CourseKey, options: dict[str, Any]) -> list[int]:
+    """
+    Retrieve the users that meet both completion and grade criteria.
+
+    This processor combines the functionality of retrieve_course_completions and retrieve_subsection_grades.
+    To be eligible, learners must satisfy both sets of criteria.
+
+    :param course_id: The course ID.
+    :param options: The custom options for the credential.
+    :returns: The IDs of the users that meet both sets of criteria.
+
+    Options:
+      - required_completion: The minimum required completion percentage (default: 0.9)
+      - required_grades: A dictionary of required grades for each category, where the keys are the category names and
+        the values are the minimum required grades. The grades are percentages in the range [0, 1].
+        Example::
+
+          {
+            "required_grades": {
+              "Homework": 0.4,
+              "Exam": 0.9,
+              "Total": 0.8
+            }
+          }
+    """
+    completion_eligible_users = set(retrieve_course_completions(course_id, options))
+    grades_eligible_users = set(retrieve_subsection_grades(course_id, options))
+
+    return list(completion_eligible_users & grades_eligible_users)
