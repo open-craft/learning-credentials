@@ -16,6 +16,15 @@ Unreleased
 
 *
 
+0.2.0 – 2025-04-03
+******************
+
+Added
+=====
+
+* Initial implementation of the certificates app.
+
+
 0.1.0 – 2025-01-29
 ******************
 
