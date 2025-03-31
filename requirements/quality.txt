@@ -20,7 +20,7 @@ asgiref==3.8.1
     # via
     #   -r requirements/test.txt
     #   django
-attrs==25.1.0
+attrs==25.3.0
     # via
     #   -r requirements/test.txt
     #   edx-ace
@@ -89,7 +89,7 @@ code-annotations==2.2.0
     # via
     #   -r requirements/test.txt
     #   edx-toggles
-coverage==7.6.12
+coverage==7.8.0
     # via
     #   -r requirements/test.txt
     #   django-coverage-plugin
@@ -178,7 +178,7 @@ django-waffle==4.2.0
     #   edx-django-utils
     #   edx-drf-extensions
     #   edx-toggles
-djangorestframework==3.15.2
+djangorestframework==3.16.0
     # via
     #   -r requirements/test.txt
     #   django-config-models
@@ -205,7 +205,7 @@ edx-celeryutils==1.3.0
     #   -r requirements/test.txt
     #   edx-event-routing-backends
     #   openedx-completion-aggregator
-edx-completion==4.7.10
+edx-completion==4.7.11
     # via
     #   -r requirements/test.txt
     #   openedx-completion-aggregator
@@ -222,11 +222,11 @@ edx-drf-extensions==10.5.0
     # via
     #   -r requirements/test.txt
     #   edx-completion
-edx-event-routing-backends==9.3.2
+edx-event-routing-backends==9.3.3
     # via
     #   -r requirements/test.txt
     #   openedx-completion-aggregator
-edx-opaque-keys==2.11.0
+edx-opaque-keys==2.12.0
     # via
     #   -r requirements/test.txt
     #   edx-ccx-keys
@@ -250,7 +250,7 @@ event-tracking==3.0.0
     #   openedx-completion-aggregator
 factory-boy==3.3.3
     # via -r requirements/test.txt
-faker==37.0.0
+faker==37.1.0
     # via
     #   -r requirements/test.txt
     #   factory-boy
@@ -262,7 +262,7 @@ fasteners==0.19
     # via
     #   -r requirements/test.txt
     #   edx-event-routing-backends
-firebase-admin==6.6.0
+firebase-admin==6.7.0
     # via
     #   -r requirements/test.txt
     #   edx-ace
@@ -270,7 +270,7 @@ fs==2.4.16
     # via
     #   -r requirements/test.txt
     #   xblock
-google-api-core==2.24.1
+google-api-core==2.24.2
     # via
     #   -r requirements/test.txt
     #   firebase-admin
@@ -278,7 +278,7 @@ google-api-core==2.24.1
     #   google-cloud-core
     #   google-cloud-firestore
     #   google-cloud-storage
-google-api-python-client==2.163.0
+google-api-python-client==2.166.0
     # via
     #   -r requirements/test.txt
     #   firebase-admin
@@ -295,7 +295,7 @@ google-auth-httplib2==0.2.0
     # via
     #   -r requirements/test.txt
     #   google-api-python-client
-google-cloud-core==2.4.2
+google-cloud-core==2.4.3
     # via
     #   -r requirements/test.txt
     #   google-cloud-firestore
@@ -308,7 +308,7 @@ google-cloud-storage==3.1.0
     # via
     #   -r requirements/test.txt
     #   firebase-admin
-google-crc32c==1.6.0
+google-crc32c==1.7.1
     # via
     #   -r requirements/test.txt
     #   google-cloud-storage
@@ -317,17 +317,17 @@ google-resumable-media==2.7.2
     # via
     #   -r requirements/test.txt
     #   google-cloud-storage
-googleapis-common-protos==1.69.1
+googleapis-common-protos==1.69.2
     # via
     #   -r requirements/test.txt
     #   google-api-core
     #   grpcio-status
-grpcio==1.70.0
+grpcio==1.71.0
     # via
     #   -r requirements/test.txt
     #   google-api-core
     #   grpcio-status
-grpcio-status==1.70.0
+grpcio-status==1.71.0
     # via
     #   -r requirements/test.txt
     #   google-api-core
@@ -340,7 +340,7 @@ idna==3.10
     # via
     #   -r requirements/test.txt
     #   requests
-iniconfig==2.0.0
+iniconfig==2.1.0
     # via
     #   -r requirements/test.txt
     #   pytest
@@ -357,7 +357,7 @@ jsonfield==3.1.0
     #   -r requirements/test.txt
     #   edx-celeryutils
     #   edx-event-routing-backends
-kombu==5.4.2
+kombu==5.5.2
     # via
     #   -r requirements/test.txt
     #   celery
@@ -381,13 +381,13 @@ msgpack==1.1.0
     #   cachecontrol
 mypy-extensions==1.0.0
     # via black
-newrelic==10.7.0
+newrelic==10.8.0
     # via
     #   -r requirements/test.txt
     #   edx-django-utils
 openedx-completion-aggregator==4.2.0
     # via -r requirements/test.txt
-openedx-events==9.18.2
+openedx-events==9.20.0
     # via
     #   -r requirements/test.txt
     #   event-tracking
@@ -412,7 +412,7 @@ pillow==11.1.0
     # via
     #   -r requirements/test.txt
     #   reportlab
-platformdirs==4.3.6
+platformdirs==4.3.7
     # via black
 pluggy==1.5.0
     # via
@@ -422,12 +422,12 @@ prompt-toolkit==3.0.50
     # via
     #   -r requirements/test.txt
     #   click-repl
-proto-plus==1.26.0
+proto-plus==1.26.1
     # via
     #   -r requirements/test.txt
     #   google-api-core
     #   google-cloud-firestore
-protobuf==5.29.3
+protobuf==5.29.4
     # via
     #   -r requirements/test.txt
     #   google-api-core
@@ -444,7 +444,7 @@ pyasn1==0.6.1
     #   -r requirements/test.txt
     #   pyasn1-modules
     #   rsa
-pyasn1-modules==0.4.1
+pyasn1-modules==0.4.2
     # via
     #   -r requirements/test.txt
     #   google-auth
@@ -467,11 +467,11 @@ pynacl==1.5.0
     # via
     #   -r requirements/test.txt
     #   edx-django-utils
-pyparsing==3.2.1
+pyparsing==3.2.3
     # via
     #   -r requirements/test.txt
     #   httplib2
-pypdf==5.3.1
+pypdf==5.4.0
     # via -r requirements/test.txt
 pytest==8.3.5
     # via
@@ -498,7 +498,7 @@ python-slugify==8.0.4
     # via
     #   -r requirements/test.txt
     #   code-annotations
-pytz==2025.1
+pytz==2025.2
     # via
     #   -r requirements/test.txt
     #   edx-completion
@@ -532,7 +532,7 @@ rsa==4.9
     # via
     #   -r requirements/test.txt
     #   google-auth
-ruff==0.9.10
+ruff==0.11.2
     # via -r requirements/quality.in
 sailthru-client==2.2.3
     # via
@@ -542,7 +542,7 @@ semantic-version==2.10.0
     # via
     #   -r requirements/test.txt
     #   edx-drf-extensions
-setuptools==76.0.0
+setuptools==78.1.0
     # via
     #   -r requirements/test.txt
     #   edx-completion
@@ -585,11 +585,11 @@ tincan==1.0.0
     # via
     #   -r requirements/test.txt
     #   edx-event-routing-backends
-typing-extensions==4.12.2
+typing-extensions==4.13.0
     # via
     #   -r requirements/test.txt
     #   edx-opaque-keys
-tzdata==2025.1
+tzdata==2025.2
     # via
     #   -r requirements/test.txt
     #   celery
@@ -628,5 +628,5 @@ xblock==5.1.2
     #   -r requirements/test.txt
     #   edx-completion
     #   openedx-completion-aggregator
-yamllint==1.35.1
+yamllint==1.37.0
     # via -r requirements/quality.in
