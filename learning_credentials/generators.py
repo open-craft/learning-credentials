@@ -98,7 +98,7 @@ def _write_text_on_template(template: any, font: str, username: str, context_nam
     pdf_canvas.drawString(name_x, name_y, username)
 
     # Write the learning context name.
-    pdf_canvas.setFont(font, 28)
+    pdf_canvas.setFont(font, options.get('context_name_size', 28))
     context_name_color = options.get('context_name_color', '#000')
     pdf_canvas.setFillColorRGB(*hex_to_rgb(context_name_color))
 
@@ -187,6 +187,7 @@ def generate_pdf_credential(
       - context_name: Specify the custom course or Learning Path name.
       - context_name_y: The Y coordinate of the context name on the credential (vertical position on the template).
       - context_name_color: The color of the context name on the credential (hexadecimal color code).
+      - context_name_size: The font size of the context name on the credential. The default value is 28.
       - issue_date_y: The Y coordinate of the issue date on the credential (vertical position on the template).
       - issue_date_color: The color of the issue date on the credential (hexadecimal color code).
     """
