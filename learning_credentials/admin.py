@@ -248,6 +248,8 @@ class CredentialAdmin(admin.ModelAdmin):  # noqa: D101
         'legacy_id',
         'generation_task_id',
     )
+    search_fields = ("learning_context_key", "user_id", "user_full_name")
+    list_filter = ("learning_context_key", "credential_type", "status")
 
     def get_form(self, request: HttpRequest, obj: Credential | None = None, **kwargs) -> forms.ModelForm:
         """Hide the download_url field."""
