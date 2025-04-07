@@ -158,7 +158,7 @@ django-model-utils==5.0.0
     #   edx-completion
     #   learning-paths-plugin
     #   openedx-completion-aggregator
-django-object-actions==4.3.0
+django-object-actions==5.0.0
     # via -r requirements/test.txt
 django-push-notifications==3.2.1
     # via
@@ -226,7 +226,7 @@ edx-django-utils==7.2.0
     #   event-tracking
     #   learning-paths-plugin
     #   openedx-events
-edx-drf-extensions==10.5.0
+edx-drf-extensions==10.6.0
     # via
     #   -r requirements/test.txt
     #   edx-completion
@@ -372,11 +372,7 @@ kombu==5.5.2
     #   celery
 learning-paths-plugin==0.3.0
     # via -r requirements/test.txt
-legacy-cgi==2.6.3
-    # via
-    #   -r requirements/test.txt
-    #   webob
-lxml==5.3.1
+lxml==5.3.2
     # via
     #   -r requirements/test.txt
     #   xblock
@@ -499,9 +495,9 @@ pytest==8.3.5
     #   -r requirements/test.txt
     #   pytest-cov
     #   pytest-django
-pytest-cov==6.1.0
+pytest-cov==6.1.1
     # via -r requirements/test.txt
-pytest-django==4.11.0
+pytest-django==4.11.1
     # via -r requirements/test.txt
 python-crontab==3.2.0
     # via
@@ -553,7 +549,7 @@ rsa==4.9
     # via
     #   -r requirements/test.txt
     #   google-auth
-ruff==0.11.2
+ruff==0.11.4
     # via -r requirements/quality.in
 sailthru-client==2.2.3
     # via
@@ -606,7 +602,7 @@ tincan==1.0.0
     # via
     #   -r requirements/test.txt
     #   edx-event-routing-backends
-typing-extensions==4.13.0
+typing-extensions==4.13.1
     # via
     #   -r requirements/test.txt
     #   edx-opaque-keys
@@ -635,7 +631,7 @@ wcwidth==0.2.13
     # via
     #   -r requirements/test.txt
     #   prompt-toolkit
-web-fragments==2.2.0
+web-fragments==3.0.0
     # via
     #   -r requirements/test.txt
     #   xblock
