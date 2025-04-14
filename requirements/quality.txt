@@ -39,7 +39,7 @@ cachetools==5.5.2
     # via
     #   -r requirements/test.txt
     #   google-auth
-celery==5.5.0
+celery==5.5.1
     # via
     #   -r requirements/test.txt
     #   django-celery-beat
@@ -85,7 +85,7 @@ click-repl==0.3.0
     # via
     #   -r requirements/test.txt
     #   celery
-code-annotations==2.2.0
+code-annotations==2.3.0
     # via
     #   -r requirements/test.txt
     #   edx-toggles
@@ -136,7 +136,7 @@ django==4.2.20
     #   openedx-filters
 django-celery-beat==2.7.0
     # via -r requirements/test.txt
-django-config-models==2.8.0
+django-config-models==2.9.0
     # via
     #   -r requirements/test.txt
     #   edx-event-routing-backends
@@ -216,7 +216,7 @@ edx-completion==4.7.11
     # via
     #   -r requirements/test.txt
     #   openedx-completion-aggregator
-edx-django-utils==7.2.0
+edx-django-utils==7.4.0
     # via
     #   -r requirements/test.txt
     #   django-config-models
@@ -230,7 +230,7 @@ edx-drf-extensions==10.6.0
     # via
     #   -r requirements/test.txt
     #   edx-completion
-edx-event-routing-backends==9.3.3
+edx-event-routing-backends==9.3.4
     # via
     #   -r requirements/test.txt
     #   openedx-completion-aggregator
@@ -376,7 +376,7 @@ lxml==5.3.2
     # via
     #   -r requirements/test.txt
     #   xblock
-mako==1.3.9
+mako==1.3.10
     # via
     #   -r requirements/test.txt
     #   xblock
@@ -392,11 +392,11 @@ msgpack==1.1.0
     #   cachecontrol
 mypy-extensions==1.0.0
     # via black
-newrelic==10.8.1
+newrelic==10.9.0
     # via
     #   -r requirements/test.txt
     #   edx-django-utils
-openedx-atlas==0.6.2
+openedx-atlas==0.7.0
     # via
     #   -r requirements/test.txt
     #   learning-paths-plugin
@@ -404,7 +404,7 @@ openedx-completion-aggregator==4.2.0
     # via
     #   -r requirements/test.txt
     #   learning-paths-plugin
-openedx-events==9.20.0
+openedx-events==10.0.0
     # via
     #   -r requirements/test.txt
     #   event-tracking
@@ -425,7 +425,7 @@ pbr==6.1.1
     # via
     #   -r requirements/test.txt
     #   stevedore
-pillow==11.1.0
+pillow==11.2.1
     # via
     #   -r requirements/test.txt
     #   reportlab
@@ -549,7 +549,7 @@ rsa==4.9
     # via
     #   -r requirements/test.txt
     #   google-auth
-ruff==0.11.4
+ruff==0.11.5
     # via -r requirements/quality.in
 sailthru-client==2.2.3
     # via
@@ -602,7 +602,7 @@ tincan==1.0.0
     # via
     #   -r requirements/test.txt
     #   edx-event-routing-backends
-typing-extensions==4.13.1
+typing-extensions==4.13.2
     # via
     #   -r requirements/test.txt
     #   edx-opaque-keys
@@ -639,7 +639,7 @@ webob==1.8.9
     # via
     #   -r requirements/test.txt
     #   xblock
-xblock==5.1.2
+xblock==5.2.0
     # via
     #   -r requirements/test.txt
     #   edx-completion
