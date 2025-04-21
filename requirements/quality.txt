@@ -4,7 +4,7 @@ amqp==5.3.1
     # via
     #   -r requirements/test.txt
     #   kombu
-aniso8601==10.0.0
+aniso8601==10.0.1
     # via
     #   -r requirements/test.txt
     #   tincan
@@ -134,7 +134,7 @@ django==4.2.20
     #   openedx-completion-aggregator
     #   openedx-events
     #   openedx-filters
-django-celery-beat==2.7.0
+django-celery-beat==2.8.0
     # via -r requirements/test.txt
 django-config-models==2.9.0
     # via
@@ -287,11 +287,11 @@ google-api-core==2.24.2
     #   google-cloud-core
     #   google-cloud-firestore
     #   google-cloud-storage
-google-api-python-client==2.166.0
+google-api-python-client==2.167.0
     # via
     #   -r requirements/test.txt
     #   firebase-admin
-google-auth==2.38.0
+google-auth==2.39.0
     # via
     #   -r requirements/test.txt
     #   google-api-core
@@ -309,7 +309,7 @@ google-cloud-core==2.4.3
     #   -r requirements/test.txt
     #   google-cloud-firestore
     #   google-cloud-storage
-google-cloud-firestore==2.20.1
+google-cloud-firestore==2.20.2
     # via
     #   -r requirements/test.txt
     #   firebase-admin
@@ -326,7 +326,7 @@ google-resumable-media==2.7.2
     # via
     #   -r requirements/test.txt
     #   google-cloud-storage
-googleapis-common-protos==1.69.2
+googleapis-common-protos==1.70.0
     # via
     #   -r requirements/test.txt
     #   google-api-core
@@ -366,11 +366,11 @@ jsonfield==3.1.0
     #   -r requirements/test.txt
     #   edx-celeryutils
     #   edx-event-routing-backends
-kombu==5.5.2
+kombu==5.5.3
     # via
     #   -r requirements/test.txt
     #   celery
-learning-paths-plugin==0.3.0
+learning-paths-plugin==0.3.1
     # via -r requirements/test.txt
 lxml==5.3.2
     # via
@@ -412,7 +412,7 @@ openedx-filters==2.0.1
     # via
     #   -r requirements/test.txt
     #   edx-event-routing-backends
-packaging==24.2
+packaging==25.0
     # via
     #   -r requirements/test.txt
     #   black
@@ -435,7 +435,7 @@ pluggy==1.5.0
     # via
     #   -r requirements/test.txt
     #   pytest
-prompt-toolkit==3.0.50
+prompt-toolkit==3.0.51
     # via
     #   -r requirements/test.txt
     #   click-repl
@@ -533,7 +533,7 @@ redis==5.2.1
     # via
     #   -r requirements/test.txt
     #   django-redis
-reportlab==4.3.1
+reportlab==4.4.0
     # via -r requirements/test.txt
 requests==2.32.3
     # via
@@ -545,11 +545,11 @@ requests==2.32.3
     #   google-api-core
     #   google-cloud-storage
     #   sailthru-client
-rsa==4.9
+rsa==4.9.1
     # via
     #   -r requirements/test.txt
     #   google-auth
-ruff==0.11.5
+ruff==0.11.6
     # via -r requirements/quality.in
 sailthru-client==2.2.3
     # via
@@ -559,7 +559,7 @@ semantic-version==2.10.0
     # via
     #   -r requirements/test.txt
     #   edx-drf-extensions
-setuptools==78.1.0
+setuptools==79.0.0
     # via
     #   -r requirements/test.txt
     #   edx-completion
