@@ -41,14 +41,14 @@ cachetools==5.5.2
     #   -r requirements/quality.txt
     #   google-auth
     #   tox
-celery==5.5.1
+celery==5.5.2
     # via
     #   -r requirements/quality.txt
     #   django-celery-beat
     #   edx-celeryutils
     #   event-tracking
     #   openedx-completion-aggregator
-certifi==2025.1.31
+certifi==2025.4.26
     # via
     #   -r requirements/quality.txt
     #   requests
@@ -137,6 +137,7 @@ django==4.2.20
     #   djangorestframework
     #   drf-jwt
     #   edx-ace
+    #   edx-braze-client
     #   edx-celeryutils
     #   edx-completion
     #   edx-django-utils
@@ -217,8 +218,12 @@ drf-jwt==1.19.2
     # via
     #   -r requirements/quality.txt
     #   edx-drf-extensions
-edx-ace==1.11.4
+edx-ace==1.13.0
     # via -r requirements/quality.txt
+edx-braze-client==1.0.2
+    # via
+    #   -r requirements/quality.txt
+    #   edx-ace
 edx-ccx-keys==2.0.2
     # via
     #   -r requirements/quality.txt
@@ -237,6 +242,7 @@ edx-django-utils==7.4.0
     #   -r requirements/quality.txt
     #   django-config-models
     #   edx-ace
+    #   edx-braze-client
     #   edx-drf-extensions
     #   edx-toggles
     #   event-tracking
@@ -250,9 +256,9 @@ edx-event-routing-backends==9.3.4
     # via
     #   -r requirements/quality.txt
     #   openedx-completion-aggregator
-edx-i18n-tools==1.7.0
+edx-i18n-tools==1.8.0
     # via -r requirements/dev.in
-edx-opaque-keys==2.12.0
+edx-opaque-keys==3.0.0
     # via
     #   -r requirements/quality.txt
     #   edx-ccx-keys
@@ -294,7 +300,7 @@ filelock==3.18.0
     #   -r requirements/ci.txt
     #   tox
     #   virtualenv
-firebase-admin==6.7.0
+firebase-admin==6.8.0
     # via
     #   -r requirements/quality.txt
     #   edx-ace
@@ -310,7 +316,7 @@ google-api-core==2.24.2
     #   google-cloud-core
     #   google-cloud-firestore
     #   google-cloud-storage
-google-api-python-client==2.167.0
+google-api-python-client==2.168.0
     # via
     #   -r requirements/quality.txt
     #   firebase-admin
@@ -396,7 +402,7 @@ kombu==5.5.3
     #   celery
 learning-paths-plugin==0.3.1
     # via -r requirements/quality.txt
-lxml==5.3.2
+lxml==5.4.0
     # via
     #   -r requirements/quality.txt
     #   edx-i18n-tools
@@ -418,11 +424,11 @@ msgpack==1.1.0
     # via
     #   -r requirements/quality.txt
     #   cachecontrol
-mypy-extensions==1.0.0
+mypy-extensions==1.1.0
     # via
     #   -r requirements/quality.txt
     #   black
-newrelic==10.9.0
+newrelic==10.10.0
     # via
     #   -r requirements/quality.txt
     #   edx-django-utils
@@ -598,6 +604,7 @@ requests==2.32.3
     #   -r requirements/quality.txt
     #   apache-libcloud
     #   cachecontrol
+    #   edx-braze-client
     #   edx-drf-extensions
     #   edx-event-routing-backends
     #   google-api-core
@@ -607,7 +614,7 @@ rsa==4.9.1
     # via
     #   -r requirements/quality.txt
     #   google-auth
-ruff==0.11.6
+ruff==0.11.7
     # via -r requirements/quality.txt
 sailthru-client==2.2.3
     # via
@@ -617,7 +624,7 @@ semantic-version==2.10.0
     # via
     #   -r requirements/quality.txt
     #   edx-drf-extensions
-setuptools==79.0.0
+setuptools==80.0.0
     # via
     #   -r requirements/pip.txt
     #   -r requirements/quality.txt
@@ -686,7 +693,7 @@ urllib3==2.2.3
     #   -c requirements/common_constraints.txt
     #   -r requirements/quality.txt
     #   requests
-uv==0.6.14
+uv==0.6.17
     # via
     #   -r requirements/ci.txt
     #   -r requirements/pip.txt

@@ -37,14 +37,14 @@ cachetools==5.5.2
     # via
     #   -r requirements/base.txt
     #   google-auth
-celery==5.5.1
+celery==5.5.2
     # via
     #   -r requirements/base.txt
     #   django-celery-beat
     #   edx-celeryutils
     #   event-tracking
     #   openedx-completion-aggregator
-certifi==2025.1.31
+certifi==2025.4.26
     # via
     #   -r requirements/base.txt
     #   requests
@@ -118,6 +118,7 @@ dj-inmemorystorage==2.1.0
     #   djangorestframework
     #   drf-jwt
     #   edx-ace
+    #   edx-braze-client
     #   edx-celeryutils
     #   edx-completion
     #   edx-django-utils
@@ -197,8 +198,12 @@ drf-jwt==1.19.2
     # via
     #   -r requirements/base.txt
     #   edx-drf-extensions
-edx-ace==1.11.4
+edx-ace==1.13.0
     # via -r requirements/base.txt
+edx-braze-client==1.0.2
+    # via
+    #   -r requirements/base.txt
+    #   edx-ace
 edx-ccx-keys==2.0.2
     # via
     #   -r requirements/base.txt
@@ -217,6 +222,7 @@ edx-django-utils==7.4.0
     #   -r requirements/base.txt
     #   django-config-models
     #   edx-ace
+    #   edx-braze-client
     #   edx-drf-extensions
     #   edx-toggles
     #   event-tracking
@@ -230,7 +236,7 @@ edx-event-routing-backends==9.3.4
     # via
     #   -r requirements/base.txt
     #   openedx-completion-aggregator
-edx-opaque-keys==2.12.0
+edx-opaque-keys==3.0.0
     # via
     #   -r requirements/base.txt
     #   edx-ccx-keys
@@ -265,7 +271,7 @@ fasteners==0.19
     # via
     #   -r requirements/base.txt
     #   edx-event-routing-backends
-firebase-admin==6.7.0
+firebase-admin==6.8.0
     # via
     #   -r requirements/base.txt
     #   edx-ace
@@ -281,7 +287,7 @@ google-api-core==2.24.2
     #   google-cloud-core
     #   google-cloud-firestore
     #   google-cloud-storage
-google-api-python-client==2.167.0
+google-api-python-client==2.168.0
     # via
     #   -r requirements/base.txt
     #   firebase-admin
@@ -364,7 +370,7 @@ kombu==5.5.3
     #   celery
 learning-paths-plugin==0.3.1
     # via -r requirements/base.txt
-lxml==5.3.2
+lxml==5.4.0
     # via
     #   -r requirements/base.txt
     #   xblock
@@ -382,7 +388,7 @@ msgpack==1.1.0
     # via
     #   -r requirements/base.txt
     #   cachecontrol
-newrelic==10.9.0
+newrelic==10.10.0
     # via
     #   -r requirements/base.txt
     #   edx-django-utils
@@ -517,6 +523,7 @@ requests==2.32.3
     #   -r requirements/base.txt
     #   apache-libcloud
     #   cachecontrol
+    #   edx-braze-client
     #   edx-drf-extensions
     #   edx-event-routing-backends
     #   google-api-core
@@ -534,7 +541,7 @@ semantic-version==2.10.0
     # via
     #   -r requirements/base.txt
     #   edx-drf-extensions
-setuptools==79.0.0
+setuptools==80.0.0
     # via
     #   -r requirements/base.txt
     #   edx-completion
