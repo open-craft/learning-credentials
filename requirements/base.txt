@@ -35,7 +35,7 @@ cffi==1.17.1
     #   pynacl
 chardet==5.2.0
     # via reportlab
-charset-normalizer==3.4.1
+charset-normalizer==3.4.2
     # via requests
 click==8.1.8
     # via
@@ -55,7 +55,7 @@ code-annotations==2.3.0
     # via edx-toggles
 cron-descriptor==1.4.5
     # via django-celery-beat
-cryptography==44.0.2
+cryptography==44.0.3
     # via
     #   django-fernet-fields-v2
     #   pyjwt
@@ -245,7 +245,7 @@ jsonfield==3.1.0
     #   edx-event-routing-backends
 kombu==5.5.3
     # via celery
-learning-paths-plugin==0.3.1
+learning-paths-plugin==0.3.2
     # via -r requirements/base.in
 lxml==5.4.0
     # via xblock
@@ -258,7 +258,7 @@ markupsafe==3.0.2
     #   xblock
 msgpack==1.1.0
     # via cachecontrol
-newrelic==10.10.0
+newrelic==10.11.0
     # via edx-django-utils
 openedx-atlas==0.7.0
     # via learning-paths-plugin
@@ -266,14 +266,16 @@ openedx-completion-aggregator==4.2.0
     # via
     #   -r requirements/base.in
     #   learning-paths-plugin
-openedx-events==10.0.0
+openedx-events==10.1.0
     # via event-tracking
 openedx-filters==2.1.0
     # via edx-event-routing-backends
 pbr==6.1.1
     # via stevedore
 pillow==11.2.1
-    # via reportlab
+    # via
+    #   learning-paths-plugin
+    #   reportlab
 prompt-toolkit==3.0.51
     # via click-repl
 proto-plus==1.26.1
@@ -353,7 +355,7 @@ sailthru-client==2.2.3
     # via edx-ace
 semantic-version==2.10.0
     # via edx-drf-extensions
-setuptools==80.1.0
+setuptools==80.3.1
     # via
     #   edx-completion
     #   edx-event-routing-backends

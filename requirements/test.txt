@@ -57,7 +57,7 @@ chardet==5.2.0
     # via
     #   -r requirements/base.txt
     #   reportlab
-charset-normalizer==3.4.1
+charset-normalizer==3.4.2
     # via
     #   -r requirements/base.txt
     #   requests
@@ -95,7 +95,7 @@ cron-descriptor==1.4.5
     # via
     #   -r requirements/base.txt
     #   django-celery-beat
-cryptography==44.0.2
+cryptography==44.0.3
     # via
     #   -r requirements/base.txt
     #   django-fernet-fields-v2
@@ -362,7 +362,7 @@ kombu==5.5.3
     # via
     #   -r requirements/base.txt
     #   celery
-learning-paths-plugin==0.3.1
+learning-paths-plugin==0.3.2
     # via -r requirements/base.txt
 lxml==5.4.0
     # via
@@ -382,7 +382,7 @@ msgpack==1.1.0
     # via
     #   -r requirements/base.txt
     #   cachecontrol
-newrelic==10.10.0
+newrelic==10.11.0
     # via
     #   -r requirements/base.txt
     #   edx-django-utils
@@ -394,7 +394,7 @@ openedx-completion-aggregator==4.2.0
     # via
     #   -r requirements/base.txt
     #   learning-paths-plugin
-openedx-events==10.0.0
+openedx-events==10.1.0
     # via
     #   -r requirements/base.txt
     #   event-tracking
@@ -411,6 +411,7 @@ pbr==6.1.1
 pillow==11.2.1
     # via
     #   -r requirements/base.txt
+    #   learning-paths-plugin
     #   reportlab
 pluggy==1.5.0
     # via pytest
@@ -534,7 +535,7 @@ semantic-version==2.10.0
     # via
     #   -r requirements/base.txt
     #   edx-drf-extensions
-setuptools==80.1.0
+setuptools==80.3.1
     # via
     #   -r requirements/base.txt
     #   edx-completion
