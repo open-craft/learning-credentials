@@ -92,7 +92,7 @@ Please do not report security issues in public. Please email security@openedx.or
     :target: https://pypi.python.org/pypi/learning-credentials/
     :alt: PyPI
 
-.. |ci-badge| image:: https://github.com/open-craft/learning-credentials/workflows/Python%20CI/badge.svg?branch=main
+.. |ci-badge| image:: https://github.com/open-craft/learning-credentials/actions/workflows/ci.yml/badge.svg?branch=main
     :target: https://github.com/open-craft/learning-credentials/actions
     :alt: CI
 
@@ -112,7 +112,7 @@ Please do not report security issues in public. Please email security@openedx.or
     :target: https://github.com/open-craft/learning-credentials/blob/main/LICENSE.txt
     :alt: License
 
-.. |status-badge| image:: https://img.shields.io/badge/Status-Experimental-yellow
+.. |status-badge| image:: https://img.shields.io/badge/Status-Maintained-brightgreen
     :alt: Status
 
 .. https://githubnext.com/projects/repo-visualization/
