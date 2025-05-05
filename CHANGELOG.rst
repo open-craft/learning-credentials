@@ -22,7 +22,7 @@ Unreleased
 Added
 =====
 
-* Initial implementation of the certificates app.
+* Learning Paths support.
 
 
 0.1.0 – 2025-01-29
