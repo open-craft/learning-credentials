@@ -240,6 +240,7 @@ def _retrieve_course_completions(course_id: CourseKey, options: dict[str, Any]) 
     required_completion = options.get('required_completion', 0.9)
 
     url = f'/completion-aggregator/v1/course/{course_id}/'
+    # The API supports up to 10k results per page, but we limit it to 1k to avoid performance issues.
     query_params = {'page_size': 1000, 'page': 1}
 
     # TODO: Extract the logic of this view into an API. The current approach is very hacky.
