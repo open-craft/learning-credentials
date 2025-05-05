@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import Mock, call, patch
 
 import pytest
 from django.http import QueryDict
-from learning_paths.models import LearningPath, LearningPathStep
+from learning_paths.models import LearningPath
 from opaque_keys.edx.keys import CourseKey
 
 # noinspection PyProtectedMember
@@ -19,6 +20,10 @@ from learning_credentials.processors import (
     retrieve_completions_and_grades,
     retrieve_subsection_grades,
 )
+from test_utils.factories import UserFactory
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import User
 
 
 @patch(
@@ -322,66 +327,59 @@ def test_retrieve_course_completions_and_grades(
 
 
 @pytest.fixture
-def learning_path_with_courses() -> LearningPath:
+def users() -> list[User]:
+    """Create a list of users."""
+    return UserFactory.create_batch(6)
+
+
+@pytest.fixture
+def learning_path_with_courses(users: list[User]) -> LearningPath:
     """Create a LearningPath with multiple course steps."""
-    learning_path = LearningPath.objects.create(
-        key='path-v1:test+number+run+group',
-        slug="test",
-    )
+    learning_path = LearningPath.objects.create(key='path-v1:test+number+run+group')
 
-    course_keys = [f"course-v1:TestX+Test101+2023_{i}" for i in range(3)]
+    for i in range(3):
+        learning_path.steps.create(course_key=f"course-v1:TestX+Test101+2023_{i}", order=i)
 
-    for i, course_key_str in enumerate(course_keys):
-        LearningPathStep.objects.create(learning_path=learning_path, course_key=course_key_str, order=i)
+    # Enroll all users except the last one.
+    for i in range(len(users) - 1):
+        learning_path.enrolled_users.add(users[i])
+
+    # Mark the second last user's enrollment as inactive.
+    learning_path.learningpathenrollment_set.filter(user=users[-2]).update(is_active=False)
 
     return learning_path
 
 
+@pytest.mark.parametrize(
+    ('patch_target', 'function_to_test'),
+    [
+        ("learning_credentials.processors._retrieve_course_subsection_grades", retrieve_subsection_grades),
+        ("learning_credentials.processors._retrieve_course_completions", retrieve_completions),
+    ],
+    ids=['subsection_grades', 'completions'],
+)
 @pytest.mark.django_db
-@patch("learning_credentials.processors._retrieve_course_subsection_grades")
-def test_retrieve_subsection_grades_with_learning_path(
-    mock_retrieve_course_subsection_grades: Mock,
+def test_retrieve_data_for_learning_path(
+    patch_target: str,
+    function_to_test: callable,
     learning_path_with_courses: LearningPath,
+    users: list[User],
 ):
-    """Test retrieving subsection grades with a real learning path."""
-    options = Mock()
-    mock_retrieve_course_subsection_grades.side_effect = [
-        [101, 102, 103],  # Users passing course0
-        [102, 103, 104],  # Users passing course1
-        [101, 103, 105],  # Users passing course2
-    ]
+    """Test retrieving data for a learning path."""
+    with patch(patch_target) as mock_retrieve:
+        options = Mock()
+        mock_retrieve.side_effect = (
+            (users[i].id for i in (0, 1, 2, 4, 5)),  # Users passing/completing course0
+            (users[i].id for i in (0, 1, 2, 3, 4, 5)),  # Users passing/completing course1
+            (users[i].id for i in (0, 2, 3, 4, 5)),  # Users passing/completing course2
+        )
 
-    result = retrieve_subsection_grades(learning_path_with_courses.key, options)
+        result = function_to_test(learning_path_with_courses.key, options)
 
-    assert result == [103]
+        assert sorted(result) == [users[0].id, users[2].id]
 
-    assert mock_retrieve_course_subsection_grades.call_count == 3
-    course_keys = [step.course_key for step in learning_path_with_courses.steps.all()]
-    for i, course_key in enumerate(course_keys):
-        call_args = mock_retrieve_course_subsection_grades.call_args_list[i]
-        assert call_args[0] == (course_key, options)
-
-
-@pytest.mark.django_db
-@patch("learning_credentials.processors._retrieve_course_completions")
-def test_retrieve_completions_with_learning_path_db(
-    mock_retrieve_course_completions: Mock,
-    learning_path_with_courses: LearningPath,
-):
-    """Test retrieving completions with a real learning path."""
-    options = Mock()
-    mock_retrieve_course_completions.side_effect = [
-        [101, 102, 103, 106],  # Users completing course0
-        [102, 103, 104, 106],  # Users completing course1
-        [103, 105, 106],  # Users completing course2
-    ]
-
-    result = retrieve_completions(learning_path_with_courses.key, options)
-
-    assert sorted(result) == [103, 106]
-
-    assert mock_retrieve_course_completions.call_count == 3
-    course_keys = [step.course_key for step in learning_path_with_courses.steps.all()]
-    for i, course_key in enumerate(course_keys):
-        call_args = mock_retrieve_course_completions.call_args_list[i]
-        assert call_args[0] == (course_key, options)
+        assert mock_retrieve.call_count == 3
+        course_keys = [step.course_key for step in learning_path_with_courses.steps.all()]
+        for i, course_key in enumerate(course_keys):
+            call_args = mock_retrieve.call_args_list[i]
+            assert call_args[0] == (course_key, options)
