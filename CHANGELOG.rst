@@ -16,6 +16,14 @@ Unreleased
 
 *
 
+0.2.1 – 2025-05-05
+******************
+
+Fixed
+=====
+
+* Check enrollment status before issuing Learning Path credentials.
+
 0.2.0 – 2025-04-03
 ******************
 
