@@ -68,6 +68,11 @@ def _process_learning_context(
         else:
             results &= course_results
 
+    # Filter out users who are not enrolled in the Learning Path.
+    results &= set(
+        learning_path.enrolled_users.filter(learningpathenrollment__is_active=True).values_list('id', flat=True),
+    )
+
     return list(results) if results else []
 
 
