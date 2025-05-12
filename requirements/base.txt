@@ -37,7 +37,7 @@ chardet==5.2.0
     # via reportlab
 charset-normalizer==3.4.2
     # via requests
-click==8.1.8
+click==8.2.0
     # via
     #   celery
     #   click-didyoumean
@@ -59,7 +59,7 @@ cryptography==44.0.3
     # via
     #   django-fernet-fields-v2
     #   pyjwt
-django==4.2.20
+django==4.2.21
     # via
     #   -c requirements/common_constraints.txt
     #   -r requirements/base.in
@@ -138,11 +138,11 @@ edx-ace==1.14.0
     # via -r requirements/base.in
 edx-ccx-keys==2.0.2
     # via openedx-events
-edx-celeryutils==1.3.0
+edx-celeryutils==1.4.0
     # via
     #   edx-event-routing-backends
     #   openedx-completion-aggregator
-edx-completion==4.7.11
+edx-completion==4.9
     # via openedx-completion-aggregator
 edx-django-utils==7.4.0
     # via
@@ -195,7 +195,7 @@ google-api-core==2.24.2
     #   google-cloud-storage
 google-api-python-client==2.169.0
     # via firebase-admin
-google-auth==2.39.0
+google-auth==2.40.1
     # via
     #   google-api-core
     #   google-api-python-client
@@ -247,8 +247,6 @@ kombu==5.5.3
     # via celery
 learning-paths-plugin==0.3.2
     # via -r requirements/base.in
-legacy-cgi==2.6.3
-    # via webob
 lxml==5.4.0
     # via xblock
 mako==1.3.10
@@ -268,7 +266,7 @@ openedx-completion-aggregator==4.2.0
     # via
     #   -r requirements/base.in
     #   learning-paths-plugin
-openedx-events==10.1.0
+openedx-events==10.2.0
     # via event-tracking
 openedx-filters==2.1.0
     # via edx-event-routing-backends
@@ -314,7 +312,7 @@ pynacl==1.5.0
     # via edx-django-utils
 pyparsing==3.2.3
     # via httplib2
-pypdf==5.4.0
+pypdf==5.5.0
     # via -r requirements/base.in
 python-crontab==3.2.0
     # via django-celery-beat
@@ -357,7 +355,7 @@ sailthru-client==2.2.3
     # via edx-ace
 semantic-version==2.10.0
     # via edx-drf-extensions
-setuptools==80.3.1
+setuptools==80.4.0
     # via
     #   edx-completion
     #   edx-event-routing-backends
@@ -408,7 +406,7 @@ vine==5.1.0
     #   kombu
 wcwidth==0.2.13
     # via prompt-toolkit
-web-fragments==3.0.0
+web-fragments==3.1.0
     # via xblock
 webob==1.8.9
     # via xblock
