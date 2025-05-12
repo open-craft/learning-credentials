@@ -61,7 +61,7 @@ charset-normalizer==3.4.2
     # via
     #   -r requirements/base.txt
     #   requests
-click==8.1.8
+click==8.2.0
     # via
     #   -r requirements/base.txt
     #   celery
@@ -203,12 +203,12 @@ edx-ccx-keys==2.0.2
     # via
     #   -r requirements/base.txt
     #   openedx-events
-edx-celeryutils==1.3.0
+edx-celeryutils==1.4.0
     # via
     #   -r requirements/base.txt
     #   edx-event-routing-backends
     #   openedx-completion-aggregator
-edx-completion==4.7.11
+edx-completion==4.9
     # via
     #   -r requirements/base.txt
     #   openedx-completion-aggregator
@@ -285,7 +285,7 @@ google-api-python-client==2.169.0
     # via
     #   -r requirements/base.txt
     #   firebase-admin
-google-auth==2.39.0
+google-auth==2.40.1
     # via
     #   -r requirements/base.txt
     #   google-api-core
@@ -364,10 +364,6 @@ kombu==5.5.3
     #   celery
 learning-paths-plugin==0.3.2
     # via -r requirements/base.txt
-legacy-cgi==2.6.3
-    # via
-    #   -r requirements/base.txt
-    #   webob
 lxml==5.4.0
     # via
     #   -r requirements/base.txt
@@ -398,7 +394,7 @@ openedx-completion-aggregator==4.2.0
     # via
     #   -r requirements/base.txt
     #   learning-paths-plugin
-openedx-events==10.1.0
+openedx-events==10.2.0
     # via
     #   -r requirements/base.txt
     #   event-tracking
@@ -472,7 +468,7 @@ pyparsing==3.2.3
     # via
     #   -r requirements/base.txt
     #   httplib2
-pypdf==5.4.0
+pypdf==5.5.0
     # via -r requirements/base.txt
 pytest==8.3.5
     # via
@@ -539,7 +535,7 @@ semantic-version==2.10.0
     # via
     #   -r requirements/base.txt
     #   edx-drf-extensions
-setuptools==80.3.1
+setuptools==80.4.0
     # via
     #   -r requirements/base.txt
     #   edx-completion
@@ -611,7 +607,7 @@ wcwidth==0.2.13
     # via
     #   -r requirements/base.txt
     #   prompt-toolkit
-web-fragments==3.0.0
+web-fragments==3.1.0
     # via
     #   -r requirements/base.txt
     #   xblock
