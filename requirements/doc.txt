@@ -109,7 +109,7 @@ cron-descriptor==1.4.5
     # via
     #   -r requirements/test.txt
     #   django-celery-beat
-cryptography==44.0.3
+cryptography==45.0.2
     # via
     #   -r requirements/test.txt
     #   django-fernet-fields-v2
@@ -146,7 +146,7 @@ django==4.2.21
     #   openedx-completion-aggregator
     #   openedx-events
     #   openedx-filters
-django-celery-beat==2.8.0
+django-celery-beat==2.8.1
     # via -r requirements/test.txt
 django-config-models==2.9.0
     # via
@@ -251,7 +251,7 @@ edx-drf-extensions==10.6.0
     # via
     #   -r requirements/test.txt
     #   edx-completion
-edx-event-routing-backends==9.3.4
+edx-event-routing-backends==9.3.5
     # via
     #   -r requirements/test.txt
     #   openedx-completion-aggregator
@@ -280,11 +280,11 @@ event-tracking==3.3.0
     #   openedx-completion-aggregator
 factory-boy==3.3.3
     # via -r requirements/test.txt
-faker==37.1.0
+faker==37.3.0
     # via
     #   -r requirements/test.txt
     #   factory-boy
-fastavro==1.10.0
+fastavro==1.11.1
     # via
     #   -r requirements/test.txt
     #   openedx-events
@@ -438,7 +438,7 @@ msgpack==1.1.0
     # via
     #   -r requirements/test.txt
     #   cachecontrol
-newrelic==10.11.0
+newrelic==10.12.0
     # via
     #   -r requirements/test.txt
     #   edx-django-utils
@@ -452,7 +452,7 @@ openedx-completion-aggregator==4.2.0
     # via
     #   -r requirements/test.txt
     #   learning-paths-plugin
-openedx-events==10.2.0
+openedx-events==10.2.1
     # via
     #   -r requirements/test.txt
     #   event-tracking
@@ -477,7 +477,7 @@ pillow==11.2.1
     #   -r requirements/test.txt
     #   learning-paths-plugin
     #   reportlab
-pluggy==1.5.0
+pluggy==1.6.0
     # via
     #   -r requirements/test.txt
     #   pytest
@@ -531,7 +531,7 @@ pyjwt==2.10.1
     #   drf-jwt
     #   edx-drf-extensions
     #   firebase-admin
-pymongo==4.12.1
+pymongo==4.13.0
     # via
     #   -r requirements/test.txt
     #   edx-opaque-keys
@@ -588,11 +588,11 @@ pyyaml==6.0.2
     #   xblock
 readme-renderer==44.0
     # via twine
-redis==6.0.0
+redis==6.1.0
     # via
     #   -r requirements/test.txt
     #   django-redis
-reportlab==4.4.0
+reportlab==4.4.1
     # via -r requirements/test.txt
 requests==2.32.3
     # via
@@ -632,7 +632,7 @@ semantic-version==2.10.0
     # via
     #   -r requirements/test.txt
     #   edx-drf-extensions
-setuptools==80.4.0
+setuptools==80.7.1
     # via
     #   -r requirements/test.txt
     #   edx-completion

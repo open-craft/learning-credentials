@@ -55,7 +55,7 @@ code-annotations==2.3.0
     # via edx-toggles
 cron-descriptor==1.4.5
     # via django-celery-beat
-cryptography==44.0.3
+cryptography==45.0.2
     # via
     #   django-fernet-fields-v2
     #   pyjwt
@@ -87,7 +87,7 @@ django==4.2.21
     #   openedx-completion-aggregator
     #   openedx-events
     #   openedx-filters
-django-celery-beat==2.8.0
+django-celery-beat==2.8.1
     # via -r requirements/base.in
 django-config-models==2.9.0
     # via edx-event-routing-backends
@@ -155,7 +155,7 @@ edx-django-utils==7.4.0
     #   openedx-events
 edx-drf-extensions==10.6.0
     # via edx-completion
-edx-event-routing-backends==9.3.4
+edx-event-routing-backends==9.3.5
     # via openedx-completion-aggregator
 edx-opaque-keys==3.0.0
     # via
@@ -178,7 +178,7 @@ event-tracking==3.3.0
     #   edx-completion
     #   edx-event-routing-backends
     #   openedx-completion-aggregator
-fastavro==1.10.0
+fastavro==1.11.1
     # via openedx-events
 fasteners==0.19
     # via edx-event-routing-backends
@@ -258,7 +258,7 @@ markupsafe==3.0.2
     #   xblock
 msgpack==1.1.0
     # via cachecontrol
-newrelic==10.11.0
+newrelic==10.12.0
     # via edx-django-utils
 openedx-atlas==0.7.0
     # via learning-paths-plugin
@@ -266,7 +266,7 @@ openedx-completion-aggregator==4.2.0
     # via
     #   -r requirements/base.in
     #   learning-paths-plugin
-openedx-events==10.2.0
+openedx-events==10.2.1
     # via event-tracking
 openedx-filters==2.1.0
     # via edx-event-routing-backends
@@ -304,7 +304,7 @@ pyjwt==2.10.1
     #   drf-jwt
     #   edx-drf-extensions
     #   firebase-admin
-pymongo==4.12.1
+pymongo==4.13.0
     # via
     #   edx-opaque-keys
     #   event-tracking
@@ -336,9 +336,9 @@ pyyaml==6.0.2
     # via
     #   code-annotations
     #   xblock
-redis==6.0.0
+redis==6.1.0
     # via django-redis
-reportlab==4.4.0
+reportlab==4.4.1
     # via -r requirements/base.in
 requests==2.32.3
     # via
@@ -355,7 +355,7 @@ sailthru-client==2.2.3
     # via edx-ace
 semantic-version==2.10.0
     # via edx-drf-extensions
-setuptools==80.4.0
+setuptools==80.7.1
     # via
     #   edx-completion
     #   edx-event-routing-backends
