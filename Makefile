@@ -29,32 +29,46 @@ docs: ## generate Sphinx HTML documentation, including API docs
 	tox -e docs
 	$(BROWSER)docs/_build/html/index.html
 
-# See https://github.com/open-craft/learning-paths-plugin/blob/main/requirements/constraints.txt#L14-L17 for an explanation.
-# If it's not present in that repository, then this is no longer needed.
-COMMON_CONSTRAINTS_TXT=requirements/common_constraints.txt
-.PHONY: $(COMMON_CONSTRAINTS_TXT)
-$(COMMON_CONSTRAINTS_TXT):
-	wget -O "$(@)" https://raw.githubusercontent.com/edx/edx-lint/master/edx_lint/files/common_constraints.txt || touch "$(@)"
-	sed -i 's/^django-simple-history==3.0.0/# &/g' "$(@)"
+CONSTRAINTS_URL = https://raw.githubusercontent.com/edx/edx-lint/master/edx_lint/files/common_constraints.txt
+MARKER = External constraints (DO NOT REMOVE THIS LINE)
 
-# Define PIP_COMPILE_OPTS=-v to get more information during make upgrade.
-PIP_COMPILE = uv pip compile --upgrade $(PIP_COMPILE_OPTS)
+common-constraints: ## download and process common constraints from a URL
+	@echo "Downloading and processing constraints from $(CONSTRAINTS_URL)..."
+	@CONSTRAINTS=$$(curl -s $(CONSTRAINTS_URL)); \
+	if [ -z "$$CONSTRAINTS" ]; then \
+		echo "Warning: No constraints downloaded or URL not accessible"; \
+		exit 0; \
+	fi; \
+	\
+	echo "Processing constraints..."; \
+	PROCESSED=$$(echo "$$CONSTRAINTS" | \
+		grep -E '^[^#[:space:]]' | \
+		sed -e 's/^/    "/' -e 's/$$/"/' | \
+		sed '$$!s/$$/,/'); \
+	\
+	echo "Updating pyproject.toml..."; \
+	awk -i inplace -v constraints="$$PROCESSED" -v marker="$(MARKER)" ' \
+		{ \
+		    if (index($$0, marker)) { \
+			    print; \
+			    print constraints; \
+			    in_block=1; \
+			    next; \
+		    } \
+		    if (in_block && /\]/) { \
+			    in_block=0; \
+			    print; \
+			    next; \
+		    } \
+		    if (!in_block) { \
+			    print; \
+		    } \
+		}' pyproject.toml && \
+	echo "Constraints updated successfully."
 
-upgrade: export CUSTOM_COMPILE_COMMAND=make upgrade
-upgrade: piptools $(COMMON_CONSTRAINTS_TXT) ## update the requirements/*.txt files with the latest packages satisfying requirements/*.in
+upgrade: common-constraints ## update the requirements/*.txt files with the latest packages satisfying requirements/*.in
 	uv venv --allow-existing
-	# Make sure to compile files after any other files they include!
-	$(PIP_COMPILE) -o requirements/pip.txt requirements/pip.in
-	uv pip install -qr requirements/pip.txt
-	$(PIP_COMPILE) -o requirements/base.txt requirements/base.in
-	$(PIP_COMPILE) -o requirements/test.txt requirements/test.in
-	$(PIP_COMPILE) -o requirements/doc.txt requirements/doc.in
-	$(PIP_COMPILE) -o requirements/quality.txt requirements/quality.in
-	$(PIP_COMPILE) -o requirements/ci.txt requirements/ci.in
-	$(PIP_COMPILE) -o requirements/dev.txt requirements/dev.in
-	# Let tox control the Django version for tests
-	sed '/^[dD]jango==/d' requirements/test.txt > requirements/test.tmp
-	mv requirements/test.tmp requirements/test.txt
+	uv lock --upgrade
 
 quality: ## check coding style with pycodestyle and pylint
 	tox -e quality
@@ -62,11 +76,8 @@ quality: ## check coding style with pycodestyle and pylint
 pii_check: ## check for PII annotations on all Django models
 	tox -e pii_check
 
-piptools: ## install pinned version of pip-compile and pip-sync
-	pip install -r requirements/pip.txt
-
-requirements: piptools ## install development environment requirements
-	uv pip sync -q requirements/dev.txt requirements/private.*
+requirements: ## install development environment requirements
+	uv sync
 
 lint: ## lint all files
 	black .

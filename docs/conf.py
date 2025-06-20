@@ -14,6 +14,7 @@ serve to show the default.
 import os
 import re
 import sys
+import importlib.metadata
 from datetime import datetime
 from subprocess import check_call
 
@@ -39,7 +40,7 @@ def get_version(*file_paths):
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(REPO_ROOT)
 
-VERSION = get_version('../learning_credentials', '__init__.py')
+VERSION = importlib.metadata.version("learning_credentials")
 # Configure Django for autodoc usage
 os.environ['DJANGO_SETTINGS_MODULE'] = 'test_settings'
 django_setup()

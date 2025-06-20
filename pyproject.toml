@@ -1,3 +1,95 @@
+[project]
+name = "learning-credentials"
+version = "0.2.2"
+description = "A pluggable service for preparing Open edX credentials."
+readme = {file = "README.rst", content-type = "text/x-rst"}
+requires-python = ">=3.11"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE.txt"]
+authors = [{name = "OpenCraft", email = "help@opencraft.com"}]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["Python", "edx"]
+dependencies = [
+    "django",  # Web application framework
+    "django-model-utils",  # Provides TimeStampedModel abstract base class
+    "edx-opaque-keys",  # Create and introspect Course and XBlock identities
+    "celery",  # Distributed task queue
+    "django-celery-beat",  # Periodic task scheduler
+    "django_reverse_admin",  # Provides reverse inlines in the admin interface
+    "djangorestframework",  # RESTful API framework
+    "django-object-actions",  # Provides actions on objects in the admin interface
+    # TODO: Extract these to a plugin.
+    "pypdf",  # PDF manipulation library
+    "reportlab",  # PDF generation library
+    "openedx-completion-aggregator",  # Completion aggregation service
+    "edx_ace",  # Messaging library
+    "learning-paths-plugin>=0.3.4-rc6",
+]
+
+[project.urls]
+Homepage = "https://github.com/open-craft/learning-credentials"
+
+[project.entry-points."lms.djangoapp"]
+learning_credentials = "learning_credentials.apps:LearningCredentialsConfig"
+openedx_certificates = "openedx_certificates.apps:OpenEdxCertificatesConfig"
+
+[tool.setuptools.packages.find]
+include = ["learning_credentials", "learning_credentials.*", "openedx_certificates", "openedx_certificates.*"]
+exclude = ["*tests"]
+
+[dependency-groups]
+test = [
+    "pytest-cov",                # pytest extension for code coverage statistics
+    "django-coverage-plugin",    # django_coverage_plugin
+    "pytest-django",             # pytest extension for better Django support
+    "code-annotations",          # provides commands used by the pii_check make target
+    "dj-inmemorystorage",        # provides an in-memory storage backend for Django
+    "factory-boy",               # provides a fixtures replacement for pytest
+]
+ci = [
+    "tox",                       # Virtualenv management for tests
+    "tox-uv",                    # Replace pip with uv in tox
+]
+docs = [
+    "doc8",                      # reStructuredText style checker
+    "sphinx-book-theme",         # Common theme for all Open edX projects
+    "twine",                     # Validates README.rst for usage on PyPI
+    "build",                     # Needed to build the wheel for twine check
+    "Sphinx",                    # Documentation builder
+]
+quality = [
+    "black",                     # Code formatter
+    "ruff",                      # Linter
+    "yamllint",                  # A linter for YAML files
+]
+dev = [
+    {include-group = "test"},
+    {include-group = "ci"},
+    {include-group = "docs"},
+    {include-group = "quality"},
+    "diff-cover",                # Changeset diff test coverage
+    "edx-i18n-tools",            # For i18n_tool dummy
+]
+
+[tool.uv]
+constraint-dependencies = [
+    # External constraints (DO NOT REMOVE THIS LINE)
+    "Django<5.0",
+    "elasticsearch<7.14.0",
+    "django-simple-history==3.0.0",
+    "pip<24.3",
+    "urllib3<2.3.0"
+]
+
 [tool.coverage.run]
 include = ['learning_credentials/**']
 omit = ['*/migrations/*', 'tests/*']
