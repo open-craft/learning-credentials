@@ -20,8 +20,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: setup python
-        uses: actions/setup-python@v4
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -29,16 +29,13 @@ jobs:
         if: matrix.toxenv == 'docs'
         uses: ts-graphviz/setup-graphviz@v1
 
-      - name: Install pip
-        run: pip install -r requirements/pip.txt
-
       - name: Install Dependencies
-        run: pip install -r requirements/ci.txt
+        run: uv sync --only-group ci
 
       - name: Run Tests
         env:
           TOXENV: ${{ matrix.toxenv }}
-        run: tox
+        run: uv run tox
 
       - name: Run coverage
         if: matrix.python-version == '3.11' && matrix.toxenv == 'django42'
