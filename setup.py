@@ -143,13 +143,12 @@ setup(
     author_email='help@opencraft.com',
     url='https://github.com/open-craft/learning-credentials',
     packages=find_packages(
-        include=['learning_credentials', 'learning_credentials.*', 'openedx_certificates', 'openedx_certificates.*'],
+        include=['learning_credentials', 'learning_credentials.*'],
         exclude=["*tests"],
     ),
     entry_points={
         "lms.djangoapp": [
             "learning_credentials = learning_credentials.apps:LearningCredentialsConfig",
-            "openedx_certificates = openedx_certificates.apps:OpenEdxCertificatesConfig",
         ],
     },
     include_package_data=True,

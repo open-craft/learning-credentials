@@ -5,7 +5,7 @@ import model_utils.fields
 import opaque_keys.edx.django.models
 import uuid
 
-import openedx_certificates.models
+import learning_credentials.models
 
 
 class Migration(migrations.Migration):
@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                     models.FileField(
                         help_text='Asset file. It could be a PDF template, image or font file.',
                         max_length=255,
-                        upload_to=openedx_certificates.models.ExternalCertificateAsset.template_assets_path,
+                        upload_to=learning_credentials.models.CredentialAsset.template_assets_path,
                     ),
                 ),
                 (
