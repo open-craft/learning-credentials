@@ -29,19 +29,11 @@ docs: ## generate Sphinx HTML documentation, including API docs
 	tox -e docs
 	$(BROWSER)docs/_build/html/index.html
 
-# See https://github.com/open-craft/learning-paths-plugin/blob/main/requirements/constraints.txt#L14-L17 for an explanation.
-# If it's not present in that repository, then this is no longer needed.
-COMMON_CONSTRAINTS_TXT=requirements/common_constraints.txt
-.PHONY: $(COMMON_CONSTRAINTS_TXT)
-$(COMMON_CONSTRAINTS_TXT):
-	wget -O "$(@)" https://raw.githubusercontent.com/edx/edx-lint/master/edx_lint/files/common_constraints.txt || touch "$(@)"
-	sed -i 's/^django-simple-history==3.0.0/# &/g' "$(@)"
-
 # Define PIP_COMPILE_OPTS=-v to get more information during make upgrade.
 PIP_COMPILE = uv pip compile --upgrade $(PIP_COMPILE_OPTS)
 
 upgrade: export CUSTOM_COMPILE_COMMAND=make upgrade
-upgrade: piptools $(COMMON_CONSTRAINTS_TXT) ## update the requirements/*.txt files with the latest packages satisfying requirements/*.in
+upgrade: piptools ## update the requirements/*.txt files with the latest packages satisfying requirements/*.in
 	uv venv --allow-existing
 	# Make sure to compile files after any other files they include!
 	$(PIP_COMPILE) -o requirements/pip.txt requirements/pip.in

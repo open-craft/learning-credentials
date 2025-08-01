@@ -14,4 +14,4 @@ pypdf                   # PDF manipulation library
 reportlab               # PDF generation library
 openedx-completion-aggregator # Completion aggregation service
 edx_ace                 # Messaging library
-learning-paths-plugin>=0.3.0
+learning-paths-plugin>=0.3.4

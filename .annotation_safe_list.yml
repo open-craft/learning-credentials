@@ -7,11 +7,6 @@
 # fake_app_2.FakeModel2:
 #    ".. choice_annotation:": foo, bar, baz
 
-learning_paths.HistoricalLearningPathEnrollment:
-  ".. pii": The email field is not retired to allow future learners to enroll.
-  ".. pii_types": email_address
-  ".. pii_retirement": retained
-
 admin.LogEntry:
   ".. no_pii:": This model has no PII
 auth.Group:
