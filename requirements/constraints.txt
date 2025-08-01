@@ -10,3 +10,6 @@
 
 # Common constraints for edx repos
 -c https://raw.githubusercontent.com/edx/edx-lint/master/edx_lint/files/common_constraints.txt
+
+# TODO: Delete this once https://github.com/googleapis/google-auth-library-python/pull/1797 is merged.
+cachetools<6
