@@ -5,6 +5,8 @@ This module moderates access to all edx-platform features allowing for cross-ver
 It also simplifies running tests outside edx-platform's environment by stubbing these functions in unit tests.
 """
 
+# ruff: noqa: PLC0415
+
 from __future__ import annotations
 
 from contextlib import contextmanager
