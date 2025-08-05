@@ -45,12 +45,14 @@ def _process_learning_context(
     Process a learning context (course or learning path) using the given course processor function.
 
     For courses, runs the processor directly. For learning paths, runs the processor on each
-    course in the path and returns the intersection of eligible users across all courses.
+    course in the path with step-specific options (if available), and returns the intersection
+    of eligible users across all courses.
 
     Args:
         learning_context_key: A course key or learning path key to process
         course_processor: A function that processes a single course and returns eligible user IDs
-        options: Options to pass to the processor
+        options: Options to pass to the processor. For learning paths, may contain a "steps" key
+                with step-specific options in the format: {"steps": {"<course_key>": {...}}}
 
     Returns:
         A list of eligible user IDs
@@ -62,7 +64,9 @@ def _process_learning_context(
 
     results = None
     for course in learning_path.steps.all():
-        course_results = set(course_processor(course.course_key, options))
+        course_options = options.get("steps", {}).get(str(course.course_key), options)
+        course_results = set(course_processor(course.course_key, course_options))
+
         if results is None:
             results = course_results
         else:
@@ -205,6 +209,28 @@ def retrieve_subsection_grades(learning_context_key: LearningContextKey, options
         3. Exam: 70%
         The grades for the Total category will be calculated as follows:
         total_grade = (homework_grade * 0.2) + (lab_grade * 0.1) + (exam_grade * 0.7)
+      - steps: For learning paths only. A dictionary with step-specific options in the format
+        {"&lt;course_key&gt;": {...}}. If provided, each course in the learning path will use its specific
+        options instead of the global options. Example::
+
+          {
+            "required_grades": {
+              "Total": 0.8
+            },
+            "steps": {
+              "course-v1:edX+DemoX+Demo_Course": {
+                "required_grades": {
+                  "Total": 0.9
+                }
+              },
+              "course-v1:edX+CS101+2023": {
+                "required_grades": {
+                  "Homework": 0.5,
+                  "Total": 0.7
+                }
+              }
+            }
+          }
     """
     return _process_learning_context(learning_context_key, _retrieve_course_subsection_grades, options)
 
@@ -277,6 +303,21 @@ def retrieve_completions(learning_context_key: LearningContextKey, options: dict
 
     Options:
       - required_completion: The minimum required completion percentage. The default value is 0.9.
+      - steps: For learning paths only. A dictionary with step-specific options in the format
+        {"&lt;course_key&gt;": {...}}. If provided, each course in the learning path will use its specific
+        options instead of the global options. Example::
+
+          {
+            "required_completion": 0.8,
+            "steps": {
+              "course-v1:edX+DemoX+Demo_Course": {
+                "required_completion": 0.9
+              },
+              "course-v1:edX+CS101+2023": {
+                "required_completion": 0.7
+              }
+            }
+          }
     """
     return _process_learning_context(learning_context_key, _retrieve_course_completions, options)
 
@@ -295,14 +336,39 @@ def retrieve_completions_and_grades(learning_context_key: LearningContextKey, op
     Options:
       - required_completion: The minimum required completion percentage (default: 0.9)
       - required_grades: A dictionary of required grades for each category, where the keys are the category names and
-        the values are the minimum required grades. The grades are percentages in the range [0, 1].
-        Example::
+        the values are the minimum required grades. The grades are percentages in the range [0, 1]. Example::
 
           {
             "required_grades": {
               "Homework": 0.4,
               "Exam": 0.9,
               "Total": 0.8
+            }
+          }
+
+      - steps: For learning paths only. A dictionary with step-specific options in the format
+        {"&lt;course_key&gt;": {...}}. If provided, each course in the learning path will use its specific
+        options instead of the global options. Example::
+
+          {
+            "required_completion": 0.8,
+            "required_grades": {
+              "Total": 0.7
+            },
+            "steps": {
+              "course-v1:edX+DemoX+Demo_Course": {
+                "required_completion": 0.9,
+                "required_grades": {
+                  "Total": 0.8
+                }
+              },
+              "course-v1:edX+CS101+2023": {
+                "required_completion": 0.7,
+                "required_grades": {
+                  "Homework": 0.5,
+                  "Total": 0.6
+                }
+              }
             }
           }
     """
