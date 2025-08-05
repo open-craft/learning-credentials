@@ -98,6 +98,9 @@ convention = "google"
 [tool.ruff.lint.pylint]
 allow-magic-value-types = ['int', 'str']
 
+[tool.ruff.format]
+quote-style = "preserve"
+
 [tool.black]
 line-length = 120
 target-version = ['py311']
