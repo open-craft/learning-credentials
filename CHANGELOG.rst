@@ -16,6 +16,18 @@ Unreleased
 
 *
 
+0.2.2 - 2025-08-05
+
+Added
+=====
+
+* Step-specific options support for Learning Path credentials.
+
+Removed
+=======
+
+* Legacy `openedx_certificates` app.
+
 0.2.1 – 2025-05-05
 ******************
 
