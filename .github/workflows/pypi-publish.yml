@@ -12,19 +12,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: setup python
-        uses: actions/setup-python@v5
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: 3.11
 
-      - name: Install pip
-        run: pip install -r requirements/pip.txt
-
       - name: Build package
-        run: python setup.py sdist bdist_wheel
+        run: uv build
 
       - name: Publish to PyPi
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_UPLOAD_TOKEN }}
+        run: uv publish
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_UPLOAD_TOKEN }}
