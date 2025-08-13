@@ -1,3 +1,97 @@
+[project]
+name = "learning-credentials"
+version = "0.2.2"
+description = "A pluggable service for preparing Open edX credentials."
+dynamic = ["readme"]
+requires-python = ">=3.11"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE.txt"]
+authors = [{ name = "OpenCraft", email = "help@opencraft.com" }]
+keywords = ["Python", "edx", "credentials", "django"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "django",  # Web application framework
+    "django-model-utils",  # Provides TimeStampedModel abstract base class
+    "edx-opaque-keys",  # Create and introspect Course and XBlock identities
+    "celery",  # Distributed task queue
+    "django-celery-beat",  # Periodic task scheduler
+    "django_reverse_admin",  # Provides reverse inlines in the admin interface
+    "djangorestframework",  # RESTful API framework
+    "django-object-actions",  # Provides actions on objects in the admin interface
+    # TODO: Extract these to a plugin.
+    "pypdf",  # PDF manipulation library
+    "reportlab",  # PDF generation library
+    "openedx-completion-aggregator",  # Completion aggregation service
+    "edx_ace",  # Messaging library
+    "learning-paths-plugin>=0.3.4",  # Learning Paths support
+]
+
+[project.urls]
+Homepage = "https://github.com/open-craft/learning-credentials"
+Repository = "https://github.com/open-craft/learning-credentials"
+Documentation = "https://learning-credentials.readthedocs.io/"
+
+[project.entry-points."lms.djangoapp"]
+learning_credentials = "learning_credentials.apps:LearningCredentialsConfig"
+
+[tool.setuptools.packages.find]
+include = ["learning_credentials", "learning_credentials.*"]
+exclude = ["*tests"]
+
+[tool.setuptools.package-data]
+learning_credentials = ["templates/**/*", "conf/locale/**/*"]
+
+[tool.setuptools.dynamic]
+readme = { file = ["README.rst", "CHANGELOG.rst"], content-type = "text/x-rst" }
+
+[dependency-groups]
+test = [
+    "pytest-cov",
+    "django-coverage-plugin",
+    "pytest-django",
+    "code-annotations",
+    "dj-inmemorystorage",
+    "factory-boy",
+]
+django42 = ["django>=4.2,<5.0"]
+django52 = ["django>=5.2,<5.3"]
+ci = ["tox", "tox-uv"]
+quality = ["ruff", "yamllint"]
+doc = ["Sphinx", "doc8", "sphinx-book-theme", "twine"]
+dev = [
+    { include-group = "test" },
+    { include-group = "ci" },
+    { include-group = "quality" },
+    { include-group = "doc" },
+    "diff-cover",
+    "edx-i18n-tools",
+    # External dev constraints (DO NOT REMOVE THIS LINE)
+    "Django<5.0",
+]
+
+[tool.uv]
+constraint-dependencies = [
+    # External constraints (DO NOT REMOVE THIS LINE)
+    "elasticsearch<7.14.0",
+    "pip<24.3",
+]
+conflicts = [
+    [
+      { group = "django42" },
+      { group = "django52" },
+      { group = "dev" },
+    ],
+]
+
 [tool.coverage.run]
 include = ['learning_credentials/**']
 omit = ['*/migrations/*', 'tests/*']
@@ -79,6 +173,7 @@ ignore = [
     'TD002',  # missing-t\odo-author
     'TD003',  # missing-t\odo-link
     'TRY003', # raise-vanilla-args
+    'COM812'  # missing-trailing-comma (incompatible with ruff formatter)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -98,24 +193,8 @@ convention = "google"
 [tool.ruff.lint.pylint]
 allow-magic-value-types = ['int', 'str']
 
-[tool.black]
-line-length = 120
-target-version = ['py311']
-skip_string_normalization = true
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | migrations
-)/
-'''
+[tool.ruff.format]
+quote-style = "preserve"
 
 [tool.pytest.ini_options]
 filterwarnings = [

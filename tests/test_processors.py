@@ -367,7 +367,7 @@ def test_retrieve_data_for_learning_path(
 ):
     """Test retrieving data for a learning path."""
     with patch(patch_target) as mock_retrieve:
-        options = Mock()
+        options = {}
         mock_retrieve.side_effect = (
             (users[i].id for i in (0, 1, 2, 4, 5)),  # Users passing/completing course0
             (users[i].id for i in (0, 1, 2, 3, 4, 5)),  # Users passing/completing course1
@@ -383,3 +383,29 @@ def test_retrieve_data_for_learning_path(
         for i, course_key in enumerate(course_keys):
             call_args = mock_retrieve.call_args_list[i]
             assert call_args[0] == (course_key, options)
+
+
+@patch("learning_credentials.processors._retrieve_course_completions")
+@pytest.mark.django_db
+def test_retrieve_data_for_learning_path_with_step_options(
+    mock_retrieve: Mock,
+    learning_path_with_courses: LearningPath,
+):
+    """Test retrieving data for a learning path with step-specific options."""
+    course_keys = [step.course_key for step in learning_path_with_courses.steps.all()]
+
+    options = {
+        "required_completion": 0.7,
+        "steps": {
+            str(course_keys[0]): {"required_completion": 0.8},
+            str(course_keys[1]): {"required_completion": 0.9},
+            # course_keys[2] will use base options
+        },
+    }
+
+    retrieve_completions(learning_path_with_courses.key, options)
+
+    assert mock_retrieve.call_count == 3
+    assert mock_retrieve.call_args_list[0][0] == (course_keys[0], options["steps"][str(course_keys[0])])
+    assert mock_retrieve.call_args_list[1][0] == (course_keys[1], options["steps"][str(course_keys[1])])
+    assert mock_retrieve.call_args_list[2][0] == (course_keys[2], options)

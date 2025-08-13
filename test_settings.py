@@ -34,7 +34,6 @@ INSTALLED_APPS = (
     'completion_aggregator',
     'django_celery_beat',
     'learning_paths',
-    'openedx_certificates',
     'learning_credentials',
     'django_object_actions',
     'event_routing_backends',

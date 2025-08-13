@@ -106,7 +106,7 @@ class CredentialConfiguration(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         """Create a new PeriodicTask every time a new CredentialConfiguration is created."""
-        from learning_credentials.tasks import generate_credentials_for_config_task as task  # Avoid circular imports.
+        from learning_credentials.tasks import generate_credentials_for_config_task as task  # noqa: PLC0415
 
         # Use __wrapped__ to get the original function, as the task is wrapped by the @app.task decorator.
         task_path = f"{task.__wrapped__.__module__}.{task.__wrapped__.__name__}"
