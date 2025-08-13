@@ -1,0 +1,7 @@
+.certificates-block .certificates-list .certificate {
+    padding-bottom: 20px;
+}
+
+.certificates-block .certificates-list .certificate .certificate-status {
+    margin-bottom: 0;
+}

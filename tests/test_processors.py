@@ -186,7 +186,7 @@ def test_retrieve_subsection_grades(
     result = retrieve_subsection_grades(course_id, options)
 
     assert result == [101]
-    mock_get_course_enrollments.assert_called_once_with(course_id)
+    mock_get_course_enrollments.assert_called_once_with(course_id, None)
     mock_get_grades_by_format.assert_called_once_with(course_id, users)
     mock_get_category_weights.assert_called_once_with(course_id)
     mock_are_grades_passing_criteria.assert_has_calls(
@@ -382,7 +382,7 @@ def test_retrieve_data_for_learning_path(
         course_keys = [step.course_key for step in learning_path_with_courses.steps.all()]
         for i, course_key in enumerate(course_keys):
             call_args = mock_retrieve.call_args_list[i]
-            assert call_args[0] == (course_key, options)
+            assert call_args[0] == (course_key, options, None)
 
 
 @patch("learning_credentials.processors._retrieve_course_completions")
@@ -406,6 +406,6 @@ def test_retrieve_data_for_learning_path_with_step_options(
     retrieve_completions(learning_path_with_courses.key, options)
 
     assert mock_retrieve.call_count == 3
-    assert mock_retrieve.call_args_list[0][0] == (course_keys[0], options["steps"][str(course_keys[0])])
-    assert mock_retrieve.call_args_list[1][0] == (course_keys[1], options["steps"][str(course_keys[1])])
-    assert mock_retrieve.call_args_list[2][0] == (course_keys[2], options)
+    assert mock_retrieve.call_args_list[0][0] == (course_keys[0], options["steps"][str(course_keys[0])], None)
+    assert mock_retrieve.call_args_list[1][0] == (course_keys[1], options["steps"][str(course_keys[1])], None)
+    assert mock_retrieve.call_args_list[2][0] == (course_keys[2], options, None)
