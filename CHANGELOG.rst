@@ -16,6 +16,13 @@ Unreleased
 
 *
 
+0.2.3 - 2025-08-18
+
+Modified
+========
+
+* Certificate email template wording.
+
 0.2.2 - 2025-08-05
 
 Added
