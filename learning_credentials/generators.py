@@ -89,7 +89,8 @@ def _write_text_on_template(template: any, font: str, username: str, context_nam
     pdf_canvas = canvas.Canvas(io.BytesIO(), pagesize=(template_width, template_height))
 
     # Write the learner name.
-    pdf_canvas.setFont(font, 32)
+    # TODO: Add tests.
+    pdf_canvas.setFont(font, options.get('name_size', 32))
     name_color = options.get('name_color', '#000')
     pdf_canvas.setFillColorRGB(*hex_to_rgb(name_color))
 
@@ -184,6 +185,7 @@ def generate_pdf_credential(
       - font: The name of the font to use.
       - name_y: The Y coordinate of the name on the credential (vertical position on the template).
       - name_color: The color of the name on the credential (hexadecimal color code).
+      - name_size: The font size of the name on the credential. The default value is 32.
       - context_name: Specify the custom course or Learning Path name.
       - context_name_y: The Y coordinate of the context name on the credential (vertical position on the template).
       - context_name_color: The color of the context name on the credential (hexadecimal color code).
