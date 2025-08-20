@@ -16,6 +16,13 @@ Unreleased
 
 *
 
+0.2.4 - 2025-09-07
+
+Added
+=====
+
+* Option to customize the learner's name size on the PDF certificate.
+
 0.2.3 - 2025-08-18
 
 Modified

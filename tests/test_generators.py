@@ -76,6 +76,7 @@ def test_register_font_with_custom_font(mock_register_font: Mock, mock_font_clas
                 'context_name_color': '#9B192A',
                 'issue_date_color': '#f59a8e',
                 'context_name_size': 20,
+                'name_size': 24,
             },
             {
                 'name_color': (17 / 255, 34 / 255, 51 / 255),
@@ -131,7 +132,7 @@ def test_write_text_on_template(mock_canvas_class: Mock, context_name: str, opti
     assert canvas_object.drawString.call_count == 3 + context_name.count('\n')
 
     # Check the calls to setFont, setFillColorRGB and drawString methods on Canvas object
-    assert canvas_object.setFont.call_args_list[0] == call(font, 32)
+    assert canvas_object.setFont.call_args_list[0] == call(font, options.get('name_size', 32))
     assert canvas_object.setFillColorRGB.call_args_list[0] == call(*expected_name_color)
     assert canvas_object.drawString.call_args_list[0] == call(expected_name_x, expected_name_y, username)
     assert mock_canvas_class.return_value.stringWidth.mock_calls[0][1] == (username,)
