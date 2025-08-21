@@ -23,6 +23,8 @@ from learning_credentials.processors import (
 from test_utils.factories import UserFactory
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from django.contrib.auth.models import User
 
 
@@ -186,7 +188,7 @@ def test_retrieve_subsection_grades(
     result = retrieve_subsection_grades(course_id, options)
 
     assert result == [101]
-    mock_get_course_enrollments.assert_called_once_with(course_id)
+    mock_get_course_enrollments.assert_called_once_with(course_id, None)
     mock_get_grades_by_format.assert_called_once_with(course_id, users)
     mock_get_category_weights.assert_called_once_with(course_id)
     mock_are_grades_passing_criteria.assert_has_calls(
@@ -226,9 +228,12 @@ def test_prepare_request_to_completion_aggregator():
         assert view.request.query_params.urlencode() == query_params_qdict.urlencode()
 
 
+@patch('learning_credentials.processors.get_course_enrollments')
 @patch('learning_credentials.processors._prepare_request_to_completion_aggregator')
-@patch('learning_credentials.processors.get_user_model')
-def test_retrieve_course_completions(mock_get_user_model: Mock, mock_prepare_request_to_completion_aggregator: Mock):
+def test_retrieve_course_completions(
+    mock_prepare_request_to_completion_aggregator: Mock,
+    mock_get_course_enrollments: Mock,
+):
     """Test that we retrieve the course completions for all users and return IDs of users who meet the criteria."""
     course_id = Mock(spec=CourseKey)
     options = {'required_completion': 0.8}
@@ -252,27 +257,8 @@ def test_retrieve_course_completions(mock_get_user_model: Mock, mock_prepare_req
     mock_view_page2.get.return_value.data = completions_page2
     mock_prepare_request_to_completion_aggregator.side_effect = [mock_view_page1, mock_view_page2]
 
-    def filter_side_effect(*_args, **kwargs) -> list[int]:
-        """
-        A mock side effect function for User.objects.filter().
-
-        It allows testing this code without a database access.
-
-        :returns: The user IDs corresponding to the provided usernames.
-        """
-        usernames = kwargs['username__in']
-
-        values_list_mock = Mock()
-        values_list_mock.return_value = [username_id_map[username] for username in usernames]
-        queryset_mock = Mock()
-        queryset_mock.values_list = values_list_mock
-
-        return queryset_mock
-
-    username_id_map = {"user1": 1, "user2": 2, "user3": 3}
-    mock_user_model = Mock()
-    mock_user_model.objects.filter.side_effect = filter_side_effect
-    mock_get_user_model.return_value = mock_user_model
+    users = [Mock(username="user1", id=1), Mock(username="user2", id=2), Mock(username="user3", id=3)]
+    mock_get_course_enrollments.return_value = users
 
     result = retrieve_completions(course_id, options)
 
@@ -285,7 +271,7 @@ def test_retrieve_course_completions(mock_get_user_model: Mock, mock_prepare_req
     )
     mock_view_page1.get.assert_called_once_with(mock_view_page1.request, str(course_id))
     mock_view_page2.get.assert_called_once_with(mock_view_page2.request, str(course_id))
-    mock_user_model.objects.filter.assert_called_once_with(username__in=['user1', 'user3'])
+    mock_get_course_enrollments.assert_called_once_with(course_id, None)
 
 
 @pytest.mark.parametrize(
@@ -361,7 +347,7 @@ def learning_path_with_courses(users: list[User]) -> LearningPath:
 @pytest.mark.django_db
 def test_retrieve_data_for_learning_path(
     patch_target: str,
-    function_to_test: callable,
+    function_to_test: Callable[[str, dict], list[int]],
     learning_path_with_courses: LearningPath,
     users: list[User],
 ):
@@ -369,9 +355,9 @@ def test_retrieve_data_for_learning_path(
     with patch(patch_target) as mock_retrieve:
         options = {}
         mock_retrieve.side_effect = (
-            (users[i].id for i in (0, 1, 2, 4, 5)),  # Users passing/completing course0
-            (users[i].id for i in (0, 1, 2, 3, 4, 5)),  # Users passing/completing course1
-            (users[i].id for i in (0, 2, 3, 4, 5)),  # Users passing/completing course2
+            ({users[i].id: {'is_eligible': True} for i in (0, 1, 2, 4, 5)}),  # Users passing/completing course0
+            ({users[i].id: {'is_eligible': True} for i in (0, 1, 2, 3, 4, 5)}),  # Users passing/completing course1
+            ({users[i].id: {'is_eligible': True} for i in (0, 2, 3, 4, 5)}),  # Users passing/completing course2
         )
 
         result = function_to_test(learning_path_with_courses.key, options)
@@ -382,7 +368,7 @@ def test_retrieve_data_for_learning_path(
         course_keys = [step.course_key for step in learning_path_with_courses.steps.all()]
         for i, course_key in enumerate(course_keys):
             call_args = mock_retrieve.call_args_list[i]
-            assert call_args[0] == (course_key, options)
+            assert call_args[0] == (course_key, options, None)
 
 
 @patch("learning_credentials.processors._retrieve_course_completions")
@@ -406,6 +392,271 @@ def test_retrieve_data_for_learning_path_with_step_options(
     retrieve_completions(learning_path_with_courses.key, options)
 
     assert mock_retrieve.call_count == 3
-    assert mock_retrieve.call_args_list[0][0] == (course_keys[0], options["steps"][str(course_keys[0])])
-    assert mock_retrieve.call_args_list[1][0] == (course_keys[1], options["steps"][str(course_keys[1])])
-    assert mock_retrieve.call_args_list[2][0] == (course_keys[2], options)
+    assert mock_retrieve.call_args_list[0][0] == (course_keys[0], options["steps"][str(course_keys[0])], None)
+    assert mock_retrieve.call_args_list[1][0] == (course_keys[1], options["steps"][str(course_keys[1])], None)
+    assert mock_retrieve.call_args_list[2][0] == (course_keys[2], options, None)
+
+
+@pytest.mark.parametrize(
+    ('patch_target', 'function_to_test'),
+    [
+        ("learning_credentials.processors._retrieve_course_subsection_grades", retrieve_subsection_grades),
+        ("learning_credentials.processors._retrieve_course_completions", retrieve_completions),
+    ],
+    ids=['subsection_grades', 'completions'],
+)
+def test_retrieve_data_for_individual_user_course(patch_target: str, function_to_test: Callable):
+    """Test retrieving progress data for an individual user in a course."""
+    course_key = CourseKey.from_string("course-v1:TestX+CS101+2024")
+    user_id = 123
+    options = {}
+
+    # Mock the internal function to return detailed progress for all users
+    with patch(patch_target) as mock_retrieve:
+        mock_retrieve.return_value = {
+            user_id: {
+                'is_eligible': True,
+                'current_grades' if 'grades' in patch_target else 'current_completion': 85.5
+                if 'grades' in patch_target
+                else 0.95,
+                'required_grades' if 'grades' in patch_target else 'required_completion': {'total': 80.0}
+                if 'grades' in patch_target
+                else 0.9,
+            },
+            456: {
+                'is_eligible': False,
+                'current_grades' if 'grades' in patch_target else 'current_completion': 75.0
+                if 'grades' in patch_target
+                else 0.85,
+                'required_grades' if 'grades' in patch_target else 'required_completion': {'total': 80.0}
+                if 'grades' in patch_target
+                else 0.9,
+            },
+        }
+
+        result = function_to_test(course_key, options, user_id=user_id)
+
+        # Should return detailed progress for the specific user
+        assert isinstance(result, dict)
+        assert result['is_eligible'] is True
+        if 'grades' in patch_target:
+            assert result['current_grades'] == 85.5
+            assert result['required_grades'] == {'total': 80.0}
+        else:
+            assert result['current_completion'] == 0.95
+            assert result['required_completion'] == 0.9
+
+        mock_retrieve.assert_called_once_with(course_key, options, user_id)
+
+
+@pytest.mark.parametrize(
+    ('patch_target', 'function_to_test'),
+    [
+        ("learning_credentials.processors._retrieve_course_subsection_grades", retrieve_subsection_grades),
+        ("learning_credentials.processors._retrieve_course_completions", retrieve_completions),
+    ],
+    ids=['subsection_grades', 'completions'],
+)
+def test_retrieve_data_for_individual_user_not_found(patch_target: str, function_to_test: Callable):
+    """Test retrieving progress data for a user not found in course."""
+    course_id = Mock(spec=CourseKey)
+    user_id = 999  # User not in results
+    options = {}
+
+    # Mock the internal function to return detailed progress without the requested user
+    with patch(patch_target) as mock_retrieve:
+        mock_retrieve.return_value = {
+            123: {
+                'is_eligible': True,
+                'current_grades' if 'grades' in patch_target else 'current_completion': 85.5
+                if 'grades' in patch_target
+                else 0.95,
+                'required_grades' if 'grades' in patch_target else 'required_completion': {'total': 80.0}
+                if 'grades' in patch_target
+                else 0.9,
+            }
+        }
+
+        result = function_to_test(course_id, options, user_id=user_id)
+
+        # Should return not eligible for user not found
+        assert isinstance(result, dict)
+        assert result['is_eligible'] is False
+        if 'grades' in patch_target:
+            assert result['current_grades'] == {}
+            assert result['required_grades'] == {}
+        else:
+            assert result['current_completion'] == 0.0
+            assert result['required_completion'] == 0.9
+
+        mock_retrieve.assert_called_once_with(course_id, options, user_id)
+
+
+@pytest.mark.parametrize(
+    ('patch_target', 'function_to_test'),
+    [
+        ("learning_credentials.processors._retrieve_course_subsection_grades", retrieve_subsection_grades),
+        ("learning_credentials.processors._retrieve_course_completions", retrieve_completions),
+    ],
+    ids=['subsection_grades', 'completions'],
+)
+@pytest.mark.django_db
+def test_retrieve_data_for_individual_user_learning_path(
+    patch_target: str,
+    function_to_test: Callable,
+    learning_path_with_courses: LearningPath,
+    users: list[User],
+):
+    """Test retrieving progress data for an individual user in a learning path with steps breakdown."""
+    user_id = users[0].id
+    options = {}
+
+    # Mock the internal function to return detailed progress for each course step
+    with patch(patch_target) as mock_retrieve:
+        mock_retrieve.side_effect = [
+            {  # Course 1 results
+                user_id: {
+                    'is_eligible': True,
+                    'current_grades' if 'grades' in patch_target else 'current_completion': {
+                        'homework': 85.0,
+                        'total': 82.0,
+                    }
+                    if 'grades' in patch_target
+                    else 0.95,
+                    'required_grades' if 'grades' in patch_target else 'required_completion': {
+                        'homework': 50.0,
+                        'total': 80.0,
+                    }
+                    if 'grades' in patch_target
+                    else 0.9,
+                }
+            },
+            {  # Course 2 results
+                user_id: {
+                    'is_eligible': True,
+                    'current_grades' if 'grades' in patch_target else 'current_completion': {
+                        'exam': 90.0,
+                        'total': 85.0,
+                    }
+                    if 'grades' in patch_target
+                    else 0.88,
+                    'required_grades' if 'grades' in patch_target else 'required_completion': {
+                        'exam': 85.0,
+                        'total': 80.0,
+                    }
+                    if 'grades' in patch_target
+                    else 0.8,
+                }
+            },
+            {  # Course 3 results
+                user_id: {
+                    'is_eligible': True,
+                    'current_grades' if 'grades' in patch_target else 'current_completion': {'total': 83.0}
+                    if 'grades' in patch_target
+                    else 0.92,
+                    'required_grades' if 'grades' in patch_target else 'required_completion': {'total': 80.0}
+                    if 'grades' in patch_target
+                    else 0.9,
+                }
+            },
+        ]
+
+        result = function_to_test(learning_path_with_courses.key, options, user_id=user_id)
+
+        # Should return detailed progress with steps breakdown
+        assert isinstance(result, dict)
+        assert result['is_eligible'] is True
+        assert 'steps' in result
+        assert len(result['steps']) == 3
+
+        # Check that each step has the expected structure
+        for step_result in result['steps'].values():
+            assert isinstance(step_result, dict)
+            assert step_result['is_eligible'] is True
+            if 'grades' in patch_target:
+                assert 'current_grades' in step_result
+                assert 'required_grades' in step_result
+            else:
+                assert 'current_completion' in step_result
+                assert 'required_completion' in step_result
+
+        # Verify internal function was called for each course step
+        assert mock_retrieve.call_count == 3
+
+
+@pytest.mark.django_db
+def test_retrieve_completions_and_grades_for_individual_user():
+    """Test the combined processor for individual user progress."""
+    course_id = Mock(spec=CourseKey)
+    user_id = 123
+    options = {}
+
+    # Mock both individual processors
+    with (
+        patch('learning_credentials.processors.retrieve_completions') as mock_completions,
+        patch('learning_credentials.processors.retrieve_subsection_grades') as mock_grades,
+    ):
+        mock_completions.return_value = {
+            'is_eligible': True,
+            'current_completion': 0.95,
+            'required_completion': 0.9,
+        }
+
+        mock_grades.return_value = {
+            'is_eligible': True,
+            'current_grades': {'homework': 85.0, 'exam': 90.0, 'total': 87.0},
+            'required_grades': {'homework': 40.0, 'exam': 80.0, 'total': 75.0},
+        }
+
+        result = retrieve_completions_and_grades(course_id, options, user_id=user_id)
+
+        # Should return combined progress information
+        assert isinstance(result, dict)
+        assert result['is_eligible'] is True
+
+        # Should include both completion and grades information
+        assert result['current_completion'] == 0.95
+        assert result['required_completion'] == 0.9
+        assert result['current_grades'] == {'homework': 85.0, 'exam': 90.0, 'total': 87.0}
+        assert result['required_grades'] == {'homework': 40.0, 'exam': 80.0, 'total': 75.0}
+
+        # Verify both processors were called
+        mock_completions.assert_called_once_with(course_id, options, user_id)
+        mock_grades.assert_called_once_with(course_id, options, user_id)
+
+
+@pytest.mark.django_db
+def test_retrieve_completions_and_grades_for_individual_user_mixed_eligibility():
+    """Test combined processor when user meets one criteria but not the other."""
+    course_id = Mock(spec=CourseKey)
+    user_id = 123
+    options = {}
+
+    with (
+        patch('learning_credentials.processors.retrieve_completions') as mock_completions,
+        patch('learning_credentials.processors.retrieve_subsection_grades') as mock_grades,
+    ):
+        # User meets completion but not grade requirements
+        mock_completions.return_value = {
+            'is_eligible': True,
+            'current_completion': 0.95,
+            'required_completion': 0.9,
+        }
+
+        mock_grades.return_value = {
+            'is_eligible': False,
+            'current_grades': {'homework': 65.0, 'exam': 70.0, 'total': 67.0},
+            'required_grades': {'homework': 40.0, 'exam': 80.0, 'total': 75.0},
+        }
+
+        result = retrieve_completions_and_grades(course_id, options, user_id=user_id)
+
+        # Should be not eligible overall despite meeting completion requirement
+        assert isinstance(result, dict)
+        assert result['is_eligible'] is False
+
+        # Should still include all progress information
+        assert result['current_completion'] == 0.95
+        assert result['required_completion'] == 0.9
+        assert result['current_grades'] == {'homework': 65.0, 'exam': 70.0, 'total': 67.0}
+        assert result['required_grades'] == {'homework': 40.0, 'exam': 80.0, 'total': 75.0}
