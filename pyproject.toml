@@ -43,6 +43,12 @@ Documentation = "https://learning-credentials.readthedocs.io/"
 [project.entry-points."lms.djangoapp"]
 learning_credentials = "learning_credentials.apps:LearningCredentialsConfig"
 
+[project.entry-points."cms.djangoapp"]
+learning_credentials = "learning_credentials.apps:LearningCredentialsConfig"
+
+[project.entry-points."xblock.v1"]
+certificates = "learning_credentials.xblocks:CredentialsXBlock"
+
 [tool.setuptools.packages.find]
 include = ["learning_credentials", "learning_credentials.*"]
 exclude = ["*tests"]
