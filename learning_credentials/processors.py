@@ -38,46 +38,63 @@ log = logging.getLogger(__name__)
 
 def _process_learning_context(
     learning_context_key: LearningContextKey,
-    course_processor: Callable[[CourseKey, dict[str, Any]], list[int]],
+    course_processor: Callable[[CourseKey, dict[str, Any], int | None], dict[int, dict[str, Any]]],
     options: dict[str, Any],
-) -> list[int]:
+    user_id: int | None = None,
+) -> dict[int, dict[str, Any]]:
     """
     Process a learning context (course or learning path) using the given course processor function.
 
     For courses, runs the processor directly. For learning paths, runs the processor on each
-    course in the path with step-specific options (if available), and returns the intersection
-    of eligible users across all courses.
+    course in the path with step-specific options (if available), and returns detailed results
+    with step breakdown.
 
     Args:
         learning_context_key: A course key or learning path key to process
-        course_processor: A function that processes a single course and returns eligible user IDs
+        course_processor: A function that processes a single course and returns detailed progress for all users
         options: Options to pass to the processor. For learning paths, may contain a "steps" key
                 with step-specific options in the format: {"steps": {"<course_key>": {...}}}
+        user_id: Optional. If provided, will filter to the specific user.
 
     Returns:
-        A list of eligible user IDs
+        A dict mapping user_id to detailed progress, with step breakdown for learning paths
     """
     if learning_context_key.is_course:
-        return course_processor(learning_context_key, options)
+        return course_processor(learning_context_key, options, user_id)  # type: ignore[invalid-argument-type]
 
     learning_path = LearningPath.objects.get(key=learning_context_key)
 
-    results = None
-    for course in learning_path.steps.all():
-        course_options = options.get("steps", {}).get(str(course.course_key), options)
-        course_results = set(course_processor(course.course_key, course_options))
+    step_results_by_course = {}
+    all_user_ids = set()
 
-        if results is None:
-            results = course_results
-        else:
-            results &= course_results
+    # TODO: Use a single Completion Aggregator request when retrieving step results for a single user.
+    for step in learning_path.steps.all():
+        course_options = options.get("steps", {}).get(str(step.course_key), options)
+        step_results = course_processor(step.course_key, course_options, user_id)
+
+        step_results_by_course[str(step.course_key)] = step_results
+        all_user_ids.update(step_results.keys())
 
     # Filter out users who are not enrolled in the Learning Path.
-    results &= set(
-        learning_path.enrolled_users.filter(learningpathenrollment__is_active=True).values_list('id', flat=True),
+    all_user_ids &= set(
+        learning_path.enrolled_users.filter(learningpathenrollment__is_active=True).values_list('id', flat=True)
     )
 
-    return list(results) if results else []
+    final_results = {}
+    for uid in all_user_ids:
+        overall_eligible = True
+        user_step_results = {}
+
+        for course_key, step_results in step_results_by_course.items():
+            if uid in step_results:
+                user_step_results[course_key] = step_results[uid]
+                overall_eligible = overall_eligible and step_results[uid].get('is_eligible', False)
+            else:
+                overall_eligible = False
+
+        final_results[uid] = {'is_eligible': overall_eligible, 'steps': user_step_results}
+
+    return final_results
 
 
 def _get_category_weights(course_id: CourseKey) -> dict[str, float]:
@@ -100,7 +117,7 @@ def _get_category_weights(course_id: CourseKey) -> dict[str, float]:
     return category_weight_ratios
 
 
-def _get_grades_by_format(course_id: CourseKey, users: list[User]) -> dict[int, dict[str, int]]:
+def _get_grades_by_format(course_id: CourseKey, users: list[User]) -> dict[int, dict[str, float]]:
     """
     Get the grades for each user, categorized by assignment types.
 
@@ -162,30 +179,65 @@ def _are_grades_passing_criteria(
     return total_score >= required_grades.get('total', 0)
 
 
-def _retrieve_course_subsection_grades(course_id: CourseKey, options: dict[str, Any]) -> list[int]:
-    """Implementation for retrieving course grades."""
+def _calculate_grades_progress(
+    user_grades: dict[str, float],
+    required_grades: dict[str, float],
+    category_weights: dict[str, float],
+) -> dict[str, Any]:
+    """
+    Calculate detailed progress information for grade-based criteria.
+
+    :param user_grades: The grades of the user, divided by category.
+    :param required_grades: The required grades for each category.
+    :param category_weights: The weight of each category.
+    :returns: Dict with is_eligible, current_grades, and required_grades.
+    """
+    # Calculate total score
+    total_score = 0
+    for category, score in user_grades.items():
+        if category in category_weights:
+            total_score += score * category_weights[category]
+
+    # Add total to user grades
+    user_grades_with_total = {**user_grades, 'total': total_score}
+
+    is_eligible = _are_grades_passing_criteria(user_grades, required_grades, category_weights)
+
+    return {
+        'is_eligible': is_eligible,
+        'current_grades': user_grades_with_total,
+        'required_grades': required_grades,
+    }
+
+
+def _retrieve_course_subsection_grades(
+    course_id: CourseKey, options: dict[str, Any], user_id: int | None = None
+) -> dict[int, dict[str, Any]]:
+    """Implementation for retrieving course grades. Always returns detailed progress for all users."""
     required_grades: dict[str, int] = options['required_grades']
     required_grades = {key.lower(): value * 100 for key, value in required_grades.items()}
 
-    users = get_course_enrollments(course_id)
+    users = get_course_enrollments(course_id, user_id)
     grades = _get_grades_by_format(course_id, users)
     log.debug(grades)
     weights = _get_category_weights(course_id)
 
-    eligible_users = []
-    for user_id, user_grades in grades.items():
-        if _are_grades_passing_criteria(user_grades, required_grades, weights):
-            eligible_users.append(user_id)
+    results = {}
+    for uid, user_grades in grades.items():
+        results[uid] = _calculate_grades_progress(user_grades, required_grades, weights)
 
-    return eligible_users
+    return results
 
 
-def retrieve_subsection_grades(learning_context_key: LearningContextKey, options: dict[str, Any]) -> list[int]:
+def retrieve_subsection_grades(
+    learning_context_key: LearningContextKey, options: dict[str, Any], user_id: int | None = None
+) -> list[int] | dict[str, Any]:
     """
     Retrieve the users that have passing grades in all required categories.
 
     :param learning_context_key: The learning context key (course or learning path).
     :param options: The custom options for the credential.
+    :param user_id: Optional. If provided, will check eligibility for the specific user.
     :returns: The IDs of the users that have passing grades in all required categories.
 
     Options:
@@ -232,7 +284,16 @@ def retrieve_subsection_grades(learning_context_key: LearningContextKey, options
             }
           }
     """
-    return _process_learning_context(learning_context_key, _retrieve_course_subsection_grades, options)
+    detailed_results = _process_learning_context(
+        learning_context_key, _retrieve_course_subsection_grades, options, user_id
+    )
+
+    if user_id is not None:
+        if user_id in detailed_results:
+            return detailed_results[user_id]
+        return {'is_eligible': False, 'current_grades': {}, 'required_grades': {}}
+
+    return [uid for uid, result in detailed_results.items() if result.get('is_eligible', False)]
 
 
 def _prepare_request_to_completion_aggregator(course_id: CourseKey, query_params: dict, url: str) -> APIView:
@@ -252,7 +313,7 @@ def _prepare_request_to_completion_aggregator(course_id: CourseKey, query_params
     drf_request = Request(django_request)  # convert django.core.handlers.wsgi.WSGIRequest to DRF request
 
     view = CompletionDetailView()
-    view.request = drf_request
+    view.request = drf_request  # type: ignore[invalid-assignment]
 
     # HACK: Bypass the API permissions.
     staff_user = get_user_model().objects.filter(is_staff=True).first()
@@ -262,8 +323,10 @@ def _prepare_request_to_completion_aggregator(course_id: CourseKey, query_params
     return view
 
 
-def _retrieve_course_completions(course_id: CourseKey, options: dict[str, Any]) -> list[int]:
-    """Implementation for retrieving course completions."""
+def _retrieve_course_completions(
+    course_id: CourseKey, options: dict[str, Any], user_id: int | None = None
+) -> dict[int, dict[str, Any]]:
+    """Implementation for retrieving course completions. Always returns detailed progress for all users."""
     # If it turns out to be too slow, we can:
     # 1. Modify the Completion Aggregator to emit a signal/event when a user achieves a certain completion threshold.
     # 2. Get this data from the `Aggregator` model. Filter by `aggregation name == 'course'`, `course_key`, `percent`.
@@ -276,29 +339,47 @@ def _retrieve_course_completions(course_id: CourseKey, options: dict[str, Any]) 
 
     # TODO: Extract the logic of this view into an API. The current approach is very hacky.
     view = _prepare_request_to_completion_aggregator(course_id, query_params.copy(), url)
-    completions = []
+    completions = {}
 
     while True:
         # noinspection PyUnresolvedReferences
         response = view.get(view.request, str(course_id))
         log.debug(response.data)
-        completions.extend(
-            res['username'] for res in response.data['results'] if res['completion']['percent'] >= required_completion
-        )
+        for res in response.data['results']:
+            completions[res['username']] = res['completion']['percent']
         if not response.data['pagination']['next']:
             break
         query_params['page'] += 1
         view = _prepare_request_to_completion_aggregator(course_id, query_params.copy(), url)
 
-    return list(get_user_model().objects.filter(username__in=completions).values_list('id', flat=True))
+    # Get all enrolled users and map usernames to user IDs
+    users = get_course_enrollments(course_id, user_id)
+    username_to_id = {user.username: user.id for user in users}  # type: ignore[unresolved-attribute]
+
+    # Always return detailed progress for all users as dict
+    detailed_results = {}
+    for username, current_completion in completions.items():
+        if username in username_to_id:
+            user_id_for_result = username_to_id[username]
+            progress = {
+                'is_eligible': current_completion >= required_completion,
+                'current_completion': current_completion,
+                'required_completion': required_completion,
+            }
+            detailed_results[user_id_for_result] = progress
+
+    return detailed_results
 
 
-def retrieve_completions(learning_context_key: LearningContextKey, options: dict[str, Any]) -> list[int]:
+def retrieve_completions(
+    learning_context_key: LearningContextKey, options: dict[str, Any], user_id: int | None = None
+) -> list[int] | dict[str, Any]:
     """
     Retrieve the course completions for all users through the Completion Aggregator API.
 
     :param learning_context_key: The learning context key (course or learning path).
     :param options: The custom options for the credential.
+    :param user_id: Optional. If provided, will check eligibility for the specific user.
     :returns: The IDs of the users that have achieved the required completion percentage.
 
     Options:
@@ -319,10 +400,19 @@ def retrieve_completions(learning_context_key: LearningContextKey, options: dict
             }
           }
     """
-    return _process_learning_context(learning_context_key, _retrieve_course_completions, options)
+    detailed_results = _process_learning_context(learning_context_key, _retrieve_course_completions, options, user_id)
+
+    if user_id is not None:
+        if user_id in detailed_results:
+            return detailed_results[user_id]
+        return {'is_eligible': False, 'current_completion': 0.0, 'required_completion': 0.9}
+
+    return [uid for uid, result in detailed_results.items() if result.get('is_eligible', False)]
 
 
-def retrieve_completions_and_grades(learning_context_key: LearningContextKey, options: dict[str, Any]) -> list[int]:
+def retrieve_completions_and_grades(
+    learning_context_key: LearningContextKey, options: dict[str, Any], user_id: int | None = None
+) -> list[int] | dict[str, Any]:
     """
     Retrieve the users that meet both completion and grade criteria.
 
@@ -331,6 +421,7 @@ def retrieve_completions_and_grades(learning_context_key: LearningContextKey, op
 
     :param learning_context_key: The learning context key (course or learning path).
     :param options: The custom options for the credential.
+    :param user_id: Optional. If provided, will check eligibility for the specific user.
     :returns: The IDs of the users that meet both sets of criteria.
 
     Options:
@@ -372,6 +463,23 @@ def retrieve_completions_and_grades(learning_context_key: LearningContextKey, op
             }
           }
     """
+    if user_id is not None:
+        completion_result = retrieve_completions(learning_context_key, options, user_id)
+        grades_result = retrieve_subsection_grades(learning_context_key, options, user_id)
+
+        if type(grades_result) is not dict or type(completion_result) is not dict:
+            msg = 'Both results must be dictionaries when user_id is provided.'
+            raise ValueError(msg)
+
+        completion_eligible = completion_result.get('is_eligible', False)
+        grades_eligible = grades_result.get('is_eligible', False)
+
+        return {
+            **completion_result,
+            **grades_result,
+            'is_eligible': completion_eligible and grades_eligible,
+        }
+
     completion_eligible_users = set(retrieve_completions(learning_context_key, options))
     grades_eligible_users = set(retrieve_subsection_grades(learning_context_key, options))
 

@@ -25,7 +25,15 @@ if TYPE_CHECKING:
     from opaque_keys.edx.keys import LearningContextKey
 
 
-def _mock_retrieval_func(_context_id: LearningContextKey, _options: dict[str, Any]) -> list[int]:
+def _mock_retrieval_func(
+    _context_id: LearningContextKey, _options: dict[str, Any], user_id: int | None = None
+) -> list[int] | dict[str, Any]:
+    if user_id is not None:
+        if user_id == 1:
+            return {'is_eligible': True, 'current_grades': {'total': 87.0}, 'required_grades': {'total': 75.0}}
+        if user_id == 2:
+            return {'is_eligible': False, 'current_grades': {'total': 67.0}, 'required_grades': {'total': 75.0}}
+        return {'is_eligible': False}
     return [1, 2, 3]
 
 
@@ -159,6 +167,25 @@ class TestCredentialConfiguration:
         """Test the get_eligible_user_ids method."""
         eligible_user_ids = self.config.get_eligible_user_ids()
         assert eligible_user_ids == [1, 2, 3]
+
+    @pytest.mark.parametrize(('user_id', 'expected'), [(1, [1]), (2, [])])
+    def test_get_eligible_user_ids_with_for_single_user(self, user_id: int, expected: list[int]) -> None:
+        """Test the get_eligible_user_ids method with a specific user."""
+        eligible_user_ids = self.config.get_eligible_user_ids(user_id=user_id)
+        assert eligible_user_ids == expected
+
+    @pytest.mark.parametrize(
+        ("user_id", "expected"),
+        [
+            (1, {"is_eligible": True, "current_grades": {"total": 87.0}, "required_grades": {"total": 75.0}}),
+            (2, {"is_eligible": False, "current_grades": {"total": 67.0}, "required_grades": {"total": 75.0}}),
+            (999, {"is_eligible": False}),
+        ],
+    )
+    def test_get_user_eligibility_details(self, user_id: int, expected: dict[str, Any]) -> None:
+        """Test the get_user_eligibility_details method."""
+        details = self.config.get_user_eligibility_details(user_id=user_id)
+        assert details == expected
 
     @pytest.mark.django_db
     def test_filter_out_user_ids_with_credentials(self):

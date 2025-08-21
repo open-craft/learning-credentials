@@ -7,7 +7,7 @@ import logging
 import uuid
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import jsonfield
 from django.conf import settings
@@ -165,11 +165,12 @@ class CredentialConfiguration(TimeStampedModel):
         filtered_user_ids_set = set(user_ids) - set(users_ids_with_credentials)
         return list(filtered_user_ids_set)
 
-    def get_eligible_user_ids(self) -> list[int]:
+    def _call_retrieval_func(self, user_id: int | None = None) -> list[int] | dict[str, Any]:
         """
-        Get the list of eligible learners for the given course.
+        Call the retrieval function with the given parameters.
 
-        :return: A list of user IDs.
+        :param user_id: Optional. If provided, will check eligibility for the specific user.
+        :return: Raw result from the retrieval function - list of user IDs or user details dict.
         """
         func_path = self.credential_type.retrieval_func
         module_path, func_name = func_path.rsplit('.', 1)
@@ -177,7 +178,40 @@ class CredentialConfiguration(TimeStampedModel):
         func = getattr(module, func_name)
 
         custom_options = {**self.credential_type.custom_options, **self.custom_options}
-        return func(self.learning_context_key, custom_options)
+        return func(self.learning_context_key, custom_options, user_id=user_id)
+
+    def get_eligible_user_ids(self, user_id: int | None = None) -> list[int]:
+        """
+        Get the list of eligible learners for the given course.
+
+        :param user_id: Optional. If provided, will check eligibility for the specific user.
+        :return: A list of user IDs.
+        """
+        result = self._call_retrieval_func(user_id)
+
+        if user_id is not None:
+            # Single user case: return list with user ID if eligible
+            if isinstance(result, dict) and result.get('is_eligible', False):
+                return [user_id]
+            return []
+
+        # Multiple users case: result should already be a list of user IDs
+        return result if isinstance(result, list) else []
+
+    def get_user_eligibility_details(self, user_id: int) -> dict[str, Any]:
+        """
+        Get detailed eligibility information for a specific user.
+
+        :param user_id: The user ID to check eligibility for.
+        :return: Dictionary containing eligibility details and progress information.
+        """
+        result = self._call_retrieval_func(user_id)
+
+        if isinstance(result, dict):
+            return result
+
+        # Fallback for processors that don't support detailed results
+        return {'is_eligible': False}
 
     def generate_credential_for_user(self, user_id: int, celery_task_id: int = 0):
         """
@@ -294,15 +328,15 @@ class Credential(TimeStampedModel):
         learning_context_name = get_learning_context_name(self.learning_context_key)
         user = get_user_model().objects.get(id=self.user_id)
         msg = Message(
-            name="certificate_generated",
-            app_label="learning_credentials",
-            recipient=Recipient(lms_user_id=user.id, email_address=user.email),
-            language='en',
+            name="certificate_generated",  # type: ignore[unknown-argument]
+            app_label="learning_credentials",  # type: ignore[unknown-argument]
+            recipient=Recipient(lms_user_id=user.id, email_address=user.email),  # type: ignore[unknown-argument]
+            language='en',  # type: ignore[unknown-argument]
             context={
                 'certificate_link': self.download_url,
                 'course_name': learning_context_name,
                 'platform_name': settings.PLATFORM_NAME,
-            },
+            },  # type: ignore[unknown-argument]
         )
         ace.send(msg)
 
