@@ -74,6 +74,8 @@ dev = [
     { include-group = "doc" },
     "diff-cover",
     "edx-i18n-tools",
+    "ty",  # Type checker.
+    "django-types",  # Type stubs for Django.
     # External dev constraints (DO NOT REMOVE THIS LINE)
     "Django<5.0",
 ]
@@ -193,6 +195,11 @@ convention = "google"
 [tool.ruff.lint.pylint]
 allow-magic-value-types = ['int', 'str']
 
+[tool.ruff.lint.flake8-type-checking]
+# Add quotes around type annotations, if doing so would allow
+# an import to be moved into a type-checking block.
+quote-annotations = true
+
 [tool.ruff.format]
 quote-style = "preserve"
 
@@ -207,3 +214,25 @@ filterwarnings = [
 DJANGO_SETTINGS_MODULE = "test_settings"
 addopts = "--cov learning_credentials --cov tests --cov-report term-missing --cov-report xml"
 norecursedirs = ".* docs requirements site-packages"
+
+[tool.ty.rules]
+unresolved-attribute = "warn"
+
+[[tool.ty.overrides]]
+include = ["learning_credentials/settings/*.py"]
+
+[tool.ty.overrides.rules]
+unresolved-attribute = "ignore"
+
+[[tool.ty.overrides]]
+include = ["learning_credentials/compat.py"]
+
+[tool.ty.overrides.rules]
+unresolved-import = "ignore"
+
+[[tool.ty.overrides]]
+include = ["tests/**", "test_utils/**"]
+
+[tool.ty.overrides.rules]
+possibly-unbound-attribute = "ignore"
+unresolved-attribute = "ignore"

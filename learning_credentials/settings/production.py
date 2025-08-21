@@ -1,9 +1,12 @@
 """App-specific settings for production environments."""
 
-from django.conf import Settings
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from django.conf import Settings
 
 
-def plugin_settings(settings: Settings):
+def plugin_settings(settings: 'Settings'):
     """
     Use the database scheduler for Celery Beat.
 
