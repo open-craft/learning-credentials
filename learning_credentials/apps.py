@@ -15,6 +15,12 @@ class LearningCredentialsConfig(AppConfig):
 
     # https://edx.readthedocs.io/projects/edx-django-utils/en/latest/plugins/how_tos/how_to_create_a_plugin_app.html
     plugin_app: ClassVar[dict[str, dict[str, dict]]] = {
+        'url_config': {
+            'lms.djangoapp': {
+                'namespace': 'learning_credentials',
+                'app_name': 'learning_credentials',
+            }
+        },
         'settings_config': {
             'lms.djangoapp': {
                 'common': {'relative_path': 'settings.common'},

@@ -32,6 +32,7 @@ dependencies = [
     "reportlab",  # PDF generation library
     "openedx-completion-aggregator",  # Completion aggregation service
     "edx_ace",  # Messaging library
+    "edx-api-doc-tools", # API documentation tools
     "learning-paths-plugin>=0.3.4",  # Learning Paths support
 ]
 
