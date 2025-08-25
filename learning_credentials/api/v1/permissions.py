@@ -47,6 +47,9 @@ class CanAccessLearningContext(BasePermission):
             msg = "Invalid learning context key."
             raise ParseError(msg) from e
 
+        if request.user.is_staff:
+            return True
+
         if learning_context_key.is_course:
             if bool(get_course_enrollments(learning_context_key, request.user.id)):
                 return True
