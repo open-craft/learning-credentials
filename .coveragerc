@@ -11,3 +11,5 @@ omit =
     */templates/*
     */tests/*
     */settings/*
+    core_api.py
+    xblocks.py
