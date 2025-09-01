@@ -45,7 +45,7 @@ class CredentialEligibilitySerializer(serializers.Serializer):
     name = serializers.CharField()
     is_eligible = serializers.BooleanField()
     existing_credential = serializers.UUIDField(required=False, allow_null=True)
-    existing_credential_url = serializers.URLField(required=False, allow_null=True)
+    existing_credential_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
 
     current_grades = serializers.DictField(required=False)
     required_grades = serializers.DictField(required=False)
