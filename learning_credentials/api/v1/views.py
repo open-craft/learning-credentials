@@ -37,6 +37,10 @@ class CredentialEligibilityView(APIView):
     Supported Learning Contexts:
     - Course keys: `course-v1:org+course+run`
     - Learning path keys: `path-v1:org+path+run+group`
+
+    **Staff Features**:
+    - Staff users can view eligibility for any user by providing `username` parameter
+    - Non-staff users can only view their own eligibility
     """
 
     permission_classes = (IsAuthenticated, IsAdminOrSelf, CanAccessLearningContext)
@@ -92,6 +96,9 @@ class CredentialEligibilityView(APIView):
         - Completion percentages for completion-based credentials
         - Step-by-step progress for learning paths
         - Eligibility status for each credential type
+
+        **Query Parameters:**
+        - `username` (staff only): View eligibility for a specific user
 
         **Example Request**
 
@@ -150,11 +157,14 @@ class CredentialEligibilityView(APIView):
         }
         ```
         """
+        username = request.query_params.get('username')
+        user = get_object_or_404(User, username=username) if username else request.user
+
         configurations = CredentialConfiguration.objects.filter(
             learning_context_key=learning_context_key
         ).select_related('credential_type')
 
-        eligibility_data = [self._get_eligibility_data(request.user, config) for config in configurations]
+        eligibility_data = [self._get_eligibility_data(user, config) for config in configurations]
 
         response_data = {
             'context_key': learning_context_key,
@@ -210,6 +220,9 @@ class CredentialEligibilityView(APIView):
         **Notification:**
         Users will receive an email notification when credential generation completes.
 
+        **Query Parameters:**
+        - `username` (staff only): Trigger credential generation for a specific user
+
         **Example Request**
 
             POST /api/learning_credentials/v1/eligibility/course-v1:OpenedX+DemoX+DemoCourse/1/
@@ -228,6 +241,9 @@ class CredentialEligibilityView(APIView):
         }
         ```
         """
+        username = request.query_params.get('username')
+        user = get_object_or_404(User, username=username) if username else request.user
+
         config = get_object_or_404(
             CredentialConfiguration.objects.select_related('credential_type'),
             learning_context_key=learning_context_key,
@@ -236,7 +252,7 @@ class CredentialEligibilityView(APIView):
 
         existing_credential = (
             Credential.objects.filter(
-                user_id=request.user.id,
+                user_id=user.id,
                 learning_context_key=learning_context_key,
                 credential_type=config.credential_type.name,
             )
@@ -247,10 +263,10 @@ class CredentialEligibilityView(APIView):
         if existing_credential:
             return Response({"detail": "User already has a credential of this type."}, status=status.HTTP_409_CONFLICT)
 
-        if not config.get_eligible_user_ids(user_id=request.user.id):
+        if not config.get_eligible_user_ids(user_id=user.id):
             return Response({"detail": "User is not eligible for this credential."}, status=status.HTTP_400_BAD_REQUEST)
 
-        generate_credential_for_user_task.delay(config.id, request.user.id)
+        generate_credential_for_user_task.delay(config.id, user.id)
         return Response({"detail": "Credential generation started."}, status=status.HTTP_201_CREATED)
 
 
@@ -307,8 +323,6 @@ class CredentialListView(APIView):
 
         **Query Parameters:**
         - `username` (staff only): View credentials for a specific user
-
-        **Path Parameters:**
         - `learning_context_key` (optional): Filter credentials by learning context
 
         **Response includes:**
