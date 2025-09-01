@@ -2,9 +2,15 @@
 
 from django.urls import path
 
-from .views import CredentialEligibilityView, CredentialListView
+from .views import CredentialConfigurationCheckView, CredentialEligibilityView, CredentialListView
 
 urlpatterns = [
+    # Credential configuration check endpoint
+    path(
+        'configured/<str:learning_context_key>/',
+        CredentialConfigurationCheckView.as_view(),
+        name='credential-configuration-check',
+    ),
     # Credential eligibility endpoints
     path('eligibility/<str:learning_context_key>/', CredentialEligibilityView.as_view(), name='credential-eligibility'),
     path(

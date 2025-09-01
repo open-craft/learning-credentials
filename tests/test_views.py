@@ -129,6 +129,275 @@ def credential_instance(user: User, course_key: CourseKey) -> Credential:
 
 # Test classes
 @pytest.mark.django_db
+class TestCredentialConfigurationCheckViewAuthentication:
+    """Test authentication requirements for credential configuration check endpoint."""
+
+    def test_unauthenticated_user_gets_403(self, api_client: APIClient, course_key: CourseKey):
+        """Test that unauthenticated user gets 403."""
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(course_key)},
+        )
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+class TestCredentialConfigurationCheckViewPermissions:
+    """Test permission requirements for credential configuration check endpoint."""
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_enrolled_user_can_access_course_check(
+        self, mock_course_enrollments: Mock, authenticated_client: APIClient, user: User, course_key: CourseKey
+    ):
+        """Test that enrolled user can access course configuration check."""
+        mock_course_enrollments.return_value = [user]
+
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(course_key)},
+        )
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['has_credentials'] is False
+        assert data['credential_count'] == 0
+        mock_course_enrollments.assert_called_once_with(course_key, user.id)
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_non_enrolled_user_denied_course_access(
+        self, mock_course_enrollments: Mock, authenticated_client: APIClient, course_key: CourseKey
+    ):
+        """Test that non-enrolled user is denied course access."""
+        mock_course_enrollments.return_value = []
+
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(course_key)},
+        )
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert 'Course not found or user does not have access' in str(response.data)
+
+    @patch('learning_paths.models.LearningPathEnrollment.objects')
+    def test_enrolled_user_can_access_learning_path_check(
+        self, mock_learning_path_enrollment: Mock, authenticated_client: APIClient, learning_path_key: LearningPathKey
+    ):
+        """Test that enrolled user can access learning path configuration check."""
+        mock_learning_path_enrollment.filter.return_value.exists.return_value = True
+
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(learning_path_key)},
+        )
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['has_credentials'] is False
+        assert data['credential_count'] == 0
+
+    @patch('learning_paths.models.LearningPathEnrollment.objects')
+    def test_non_enrolled_user_denied_learning_path_access(
+        self, mock_learning_path_enrollment: Mock, authenticated_client: APIClient, learning_path_key: LearningPathKey
+    ):
+        """Test that non-enrolled user is denied learning path access."""
+        mock_learning_path_enrollment.filter.return_value.exists.return_value = False
+
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(learning_path_key)},
+        )
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert 'Learning path not found or user does not have access' in str(response.data)
+
+    def test_invalid_learning_context_key_returns_400(self, authenticated_client: APIClient):
+        """Test that invalid learning context key returns 400."""
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': 'invalid-key'},
+        )
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'Invalid learning context key' in str(response.data)
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_staff_can_view_any_context_check(
+        self, mock_course_enrollments: Mock, staff_client: APIClient, course_key: CourseKey
+    ):
+        """Test that staff can view configuration check for any context without enrollment check."""
+        # Staff users bypass enrollment checks, so we don't need to mock enrollment
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(course_key)},
+        )
+        response = staff_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['has_credentials'] is False
+        assert data['credential_count'] == 0
+        # Staff users don't trigger enrollment checks
+        mock_course_enrollments.assert_not_called()
+
+
+@pytest.mark.django_db
+class TestCredentialConfigurationCheckView:
+    """Test the CredentialConfigurationCheckView functionality."""
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_no_credentials_configured(
+        self, mock_course_enrollments: Mock, authenticated_client: APIClient, user: User, course_key: CourseKey
+    ):
+        """Test response when no credentials are configured for a learning context."""
+        mock_course_enrollments.return_value = [user]
+
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(course_key)},
+        )
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        assert data['has_credentials'] is False
+        assert data['credential_count'] == 0
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_single_credential_configured(
+        self,
+        mock_course_enrollments: Mock,
+        authenticated_client: APIClient,
+        user: User,
+        course_key: CourseKey,
+        grade_config: CredentialConfiguration,
+    ):
+        """Test response when one credential is configured for a learning context."""
+        mock_course_enrollments.return_value = [user]
+
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(course_key)},
+        )
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        assert data['has_credentials'] is True
+        assert data['credential_count'] == 1
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_multiple_credentials_configured(
+        self,
+        mock_course_enrollments: Mock,
+        authenticated_client: APIClient,
+        user: User,
+        course_key: CourseKey,
+        grade_config: CredentialConfiguration,
+        completion_config: CredentialConfiguration,
+    ):
+        """Test response when multiple credentials are configured for a learning context."""
+        mock_course_enrollments.return_value = [user]
+
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(course_key)},
+        )
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        assert data['has_credentials'] is True
+        assert data['credential_count'] == 2
+
+    @patch('learning_paths.models.LearningPathEnrollment.objects')
+    def test_learning_path_credentials_configured(
+        self, mock_learning_path_enrollment: Mock, authenticated_client: APIClient, learning_path_key: LearningPathKey
+    ):
+        """Test response for learning path context with configured credentials."""
+        mock_learning_path_enrollment.filter.return_value.exists.return_value = True
+
+        # Create a credential configuration for the learning path
+        credential_type = CredentialType.objects.create(
+            name="Learning Path Certificate",
+            retrieval_func="learning_credentials.processors.retrieve_completions",
+            generation_func="learning_credentials.generators.generate_pdf_credential",
+        )
+        CredentialConfiguration.objects.create(
+            learning_context_key=learning_path_key,
+            credential_type=credential_type,
+        )
+
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(learning_path_key)},
+        )
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        assert data['has_credentials'] is True
+        assert data['credential_count'] == 1
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_response_structure(
+        self,
+        mock_course_enrollments: Mock,
+        authenticated_client: APIClient,
+        user: User,
+        course_key: CourseKey,
+        grade_config: CredentialConfiguration,
+    ):
+        """Test that response has the correct structure and field types."""
+        mock_course_enrollments.return_value = [user]
+
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(course_key)},
+        )
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        # Verify all expected fields are present
+        assert 'has_credentials' in data
+        assert 'credential_count' in data
+
+        # Verify field types
+        assert isinstance(data['has_credentials'], bool)
+        assert isinstance(data['credential_count'], int)
+
+        # Verify values
+        assert data['has_credentials'] is True
+        assert data['credential_count'] == 1
+
+    def test_staff_can_check_any_context(
+        self, staff_client: APIClient, course_key: CourseKey, grade_config: CredentialConfiguration
+    ):
+        """Test that staff can check configuration for any context without enrollment."""
+        url = reverse(
+            'learning_credentials_api_v1:credential-configuration-check',
+            kwargs={'learning_context_key': str(course_key)},
+        )
+        response = staff_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['has_credentials'] is True
+        assert data['credential_count'] == 1
+
+
+@pytest.mark.django_db
 class TestCredentialEligibilityViewAuthentication:
     """Test authentication requirements for credential eligibility endpoints."""
 
