@@ -28,6 +28,66 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class CredentialConfigurationCheckView(APIView):
+    """API view to check if any credentials are configured for a specific learning context."""
+
+    permission_classes = (IsAuthenticated, IsAdminOrSelf, CanAccessLearningContext)
+
+    @apidocs.schema(
+        parameters=[
+            apidocs.string_parameter(
+                "learning_context_key",
+                ParameterLocation.PATH,
+                description=(
+                    "Learning context identifier. Can be a course key (course-v1:OpenedX+DemoX+DemoCourse) "
+                    "or learning path key (path-v1:OpenedX+DemoX+DemoPath+Demo)"
+                ),
+            ),
+        ],
+        responses={
+            200: "Boolean indicating if credentials are configured.",
+            400: "Invalid context key format.",
+            404: "Learning context not found or user does not have access.",
+        },
+    )
+    def get(self, _request: "Request", learning_context_key: str) -> Response:
+        """
+        Check if any credentials are configured for the given learning context.
+
+        **Example Request**
+
+            GET /api/learning_credentials/v1/configured/course-v1:OpenedX+DemoX+DemoCourse/
+
+        **Response Values**
+
+        If the request is successful, an HTTP 200 "OK" response is returned.
+
+        **Example Response**
+
+        ```json
+        {
+          "has_credentials": true,
+          "credential_count": 2
+        }
+        ```
+
+        **Response Fields**
+        - `has_credentials`: Boolean indicating if any credentials are configured
+        - `credential_count`: Number of credential configurations available
+
+        **Note**
+        This endpoint does not perform learning context existence validation, so it will not return 404 for staff users.
+        """
+        credential_count = CredentialConfiguration.objects.filter(learning_context_key=learning_context_key).count()
+
+        response_data = {
+            'has_credentials': credential_count > 0,
+            'credential_count': credential_count,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
 class CredentialEligibilityView(APIView):
     """
     API view for credential eligibility and generation.
