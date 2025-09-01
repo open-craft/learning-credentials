@@ -1,6 +1,6 @@
 [project]
 name = "learning-credentials"
-version = "0.2.3"
+version = "0.3.0-rc4"
 description = "A pluggable service for preparing Open edX credentials."
 dynamic = ["readme"]
 requires-python = ">=3.11"
@@ -32,6 +32,7 @@ dependencies = [
     "reportlab",  # PDF generation library
     "openedx-completion-aggregator",  # Completion aggregation service
     "edx_ace",  # Messaging library
+    "edx-api-doc-tools", # API documentation tools
     "learning-paths-plugin>=0.3.4",  # Learning Paths support
 ]
 
@@ -42,6 +43,12 @@ Documentation = "https://learning-credentials.readthedocs.io/"
 
 [project.entry-points."lms.djangoapp"]
 learning_credentials = "learning_credentials.apps:LearningCredentialsConfig"
+
+# [project.entry-points."cms.djangoapp"]
+# learning_credentials = "learning_credentials.apps:LearningCredentialsConfig"
+
+[project.entry-points."xblock.v1"]
+certificates = "learning_credentials.xblocks:CredentialsXBlock"
 
 [tool.setuptools.packages.find]
 include = ["learning_credentials", "learning_credentials.*"]
@@ -74,6 +81,8 @@ dev = [
     { include-group = "doc" },
     "diff-cover",
     "edx-i18n-tools",
+    "ty",  # Type checker.
+    "django-types",  # Type stubs for Django.
     # External dev constraints (DO NOT REMOVE THIS LINE)
     "Django<5.0",
 ]
@@ -193,6 +202,11 @@ convention = "google"
 [tool.ruff.lint.pylint]
 allow-magic-value-types = ['int', 'str']
 
+[tool.ruff.lint.flake8-type-checking]
+# Add quotes around type annotations, if doing so would allow
+# an import to be moved into a type-checking block.
+quote-annotations = true
+
 [tool.ruff.format]
 quote-style = "preserve"
 
@@ -207,3 +221,6 @@ filterwarnings = [
 DJANGO_SETTINGS_MODULE = "test_settings"
 addopts = "--cov learning_credentials --cov tests --cov-report term-missing --cov-report xml"
 norecursedirs = ".* docs requirements site-packages"
+
+[tool.ty.rules]
+unresolved-attribute = "warn"
