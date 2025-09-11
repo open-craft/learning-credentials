@@ -86,7 +86,7 @@ file in this repo.
 Reporting Security Issues
 *************************
 
-Please do not report security issues in public. Please email security@openedx.org.
+Please do not report security issues in public. Please email help@opencraft.com.
 
 .. |pypi-badge| image:: https://img.shields.io/pypi/v/learning-credentials.svg
     :target: https://pypi.python.org/pypi/learning-credentials/
