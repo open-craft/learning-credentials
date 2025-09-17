@@ -21,6 +21,7 @@ classifiers = [
 dependencies = [
     "django",  # Web application framework
     "django-model-utils",  # Provides TimeStampedModel abstract base class
+    "edx-django-utils",  # Open edX Django utilities (e.g., plugin infrastructure)
     "edx-opaque-keys",  # Create and introspect Course and XBlock identities
     "celery",  # Distributed task queue
     "django-celery-beat",  # Periodic task scheduler
