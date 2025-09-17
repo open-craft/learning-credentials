@@ -73,12 +73,15 @@ def get_learning_context_name(learning_context_key: LearningContextKey) -> str:
     return _get_learning_path_name(learning_context_key)
 
 
-def get_course_enrollments(course_id: CourseKey) -> list[User]:
+def get_course_enrollments(course_id: CourseKey, user_id: int | None = None) -> list[User]:
     """Get the course enrollments from Open edX."""
     # noinspection PyUnresolvedReferences,PyPackageRequirements
     from common.djangoapps.student.models import CourseEnrollment
 
     enrollments = CourseEnrollment.objects.filter(course_id=course_id, is_active=True).select_related('user')
+    if user_id:
+        enrollments = enrollments.filter(user__id=user_id)
+
     return [enrollment.user for enrollment in enrollments]
 
 

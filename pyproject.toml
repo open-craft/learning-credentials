@@ -21,6 +21,7 @@ classifiers = [
 dependencies = [
     "django",  # Web application framework
     "django-model-utils",  # Provides TimeStampedModel abstract base class
+    "edx-api-doc-tools",  # A toolkit for documenting REST APIs that are created with DRF
     "edx-django-utils",  # Open edX Django utilities (e.g., plugin infrastructure)
     "edx-opaque-keys",  # Create and introspect Course and XBlock identities
     "celery",  # Distributed task queue
@@ -181,10 +182,12 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 'tests/*' = [
-    'S101',   # assert
-    'INP001', # implicit-namespace-package
-    'SLF001', # private-member-access
-    'RUF018', # assignment-in-assert
+    'S101',    # assert
+    'INP001',  # implicit-namespace-package
+    'SLF001',  # private-member-access
+    'RUF018',  # assignment-in-assert
+    'ARG002',  # unused-method-argument
+    'PLR0913', # too-many-arguments
 ]
 
 [tool.ruff.lint.flake8-annotations]

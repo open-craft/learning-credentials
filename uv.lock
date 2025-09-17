@@ -808,6 +808,25 @@ wheels = [
 ]
 
 [[package]]
+name = "drf-yasg"
+version = "1.21.10"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django", version = "4.2.23", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
+    { name = "djangorestframework" },
+    { name = "inflection" },
+    { name = "packaging" },
+    { name = "pytz" },
+    { name = "pyyaml" },
+    { name = "uritemplate" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/92/93/c9a35e4d5dfa328c4d7caa66d28a7262a540e227843584395a32be0903cb/drf-yasg-1.21.10.tar.gz", hash = "sha256:f86d50faee3c31fcec4545985a871f832366c7fb5b77b62c48089d56ecf4f8d4", size = 4596566, upload-time = "2025-03-10T11:22:25.712Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ac/39/c833f775973944b378d76aeea2269e5d3d3d6528b08f1a4d774cb4cbdb3f/drf_yasg-1.21.10-py3-none-any.whl", hash = "sha256:4d832e108dfe38e365101c36123576b498487d33bf27d57d6a37efb4cc773438", size = 4290377, upload-time = "2025-03-10T11:22:23.268Z" },
+]
+
+[[package]]
 name = "edx-ace"
 version = "1.15.0"
 source = { registry = "https://pypi.org/simple" }
@@ -826,6 +845,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/53/c8/5f3af78945d647f7083c92a02a03d4deefac4f778967cca291c652ae5bd1/edx_ace-1.15.0.tar.gz", hash = "sha256:638f47dd0fa93506d9c4111d0614c5f4c8be61711d1a0c74b87128b63099e313", size = 57699, upload-time = "2025-06-25T07:43:27.714Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6c/a9/61e293cba803cce681d37d442aaed492486094ae34d2a342272b3bf23ee4/edx_ace-1.15.0-py2.py3-none-any.whl", hash = "sha256:24f60a856777a2a4ced42ab0d9c0b56289f8080000532795e82e3d17f93e1f31", size = 65600, upload-time = "2025-06-25T07:43:26.377Z" },
+]
+
+[[package]]
+name = "edx-api-doc-tools"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django", version = "4.2.23", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
+    { name = "djangorestframework" },
+    { name = "drf-yasg" },
+    { name = "setuptools" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/55/57/ffb66d0216ec090cf035112b820e3d5e25988d1474d48fbecceccd642d1f/edx_api_doc_tools-2.1.0.tar.gz", hash = "sha256:ea1b9afc2cc0c587b0de301916298437abd736e40f2a0048f3c4dd54f3575417", size = 20321, upload-time = "2025-04-29T18:59:05.966Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0a/9a/6ae603beaa5386ab83e9989d0744291b2f7f64fee476ac49e58a6be01cba/edx_api_doc_tools-2.1.0-py2.py3-none-any.whl", hash = "sha256:6a6095fa7229569ebfc95e3a9a9d93900db0e1b06af99df03162cfde5852ec41", size = 14794, upload-time = "2025-04-29T18:59:04.014Z" },
 ]
 
 [[package]]
@@ -1343,6 +1378,15 @@ wheels = [
 ]
 
 [[package]]
+name = "inflection"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e1/7e/691d061b7329bc8d54edbf0ec22fbfb2afe61facb681f9aaa9bff7a27d04/inflection-0.5.1.tar.gz", hash = "sha256:1a29730d366e996aaacffb2f1f1cb9593dc38e2ddd30c91250c6dde09ea9b417", size = 15091, upload-time = "2020-08-22T08:16:29.139Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/59/91/aa6bde563e0085a02a435aa99b49ef75b0a4b062635e606dab23ce18d720/inflection-0.5.1-py2.py3-none-any.whl", hash = "sha256:f38b2b640938a4f35ade69ac3d053042959b62a0f1076a5bbaa1b9526605a8a2", size = 9454, upload-time = "2020-08-22T08:16:27.816Z" },
+]
+
+[[package]]
 name = "iniconfig"
 version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1477,6 +1521,7 @@ dependencies = [
     { name = "django-reverse-admin" },
     { name = "djangorestframework" },
     { name = "edx-ace" },
+    { name = "edx-api-doc-tools" },
     { name = "edx-django-utils" },
     { name = "edx-opaque-keys" },
     { name = "learning-paths-plugin" },
@@ -1546,6 +1591,7 @@ requires-dist = [
     { name = "django-reverse-admin" },
     { name = "djangorestframework" },
     { name = "edx-ace" },
+    { name = "edx-api-doc-tools" },
     { name = "edx-django-utils" },
     { name = "edx-opaque-keys" },
     { name = "learning-paths-plugin", specifier = ">=0.3.4" },
