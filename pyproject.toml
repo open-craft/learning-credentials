@@ -65,7 +65,7 @@ test = [
     "factory-boy",
 ]
 django42 = ["django>=4.2,<5.0"]
-django52 = ["django>=5.2,<5.3"]
+django52 = ["django>=5.2,<6.0"]
 ci = ["tox", "tox-uv"]
 quality = ["ruff", "yamllint"]
 doc = ["Sphinx", "doc8", "sphinx-book-theme", "twine"]
@@ -79,14 +79,13 @@ dev = [
     "ty",  # Type checker.
     "django-types",  # Type stubs for Django.
     # External dev constraints (DO NOT REMOVE THIS LINE)
-    "Django<5.0",
+    "Django<6.0",
 ]
 
 [tool.uv]
 constraint-dependencies = [
     # External constraints (DO NOT REMOVE THIS LINE)
     "elasticsearch<7.14.0",
-    "pip<24.3",
 ]
 conflicts = [
     [
