@@ -7,8 +7,9 @@ import inspect
 from typing import TYPE_CHECKING
 
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 from django.utils.html import format_html
 from django_object_actions import DjangoObjectActions, action
 from django_reverse_admin import ReverseModelAdmin
@@ -225,7 +226,7 @@ class CredentialConfigurationAdmin(DjangoObjectActions, ReverseModelAdmin):
 
 
 @admin.register(Credential)
-class CredentialAdmin(admin.ModelAdmin):  # noqa: D101
+class CredentialAdmin(DjangoObjectActions, admin.ModelAdmin):  # noqa: D101
     list_display = (
         'user_id',
         'user_full_name',
@@ -237,19 +238,32 @@ class CredentialAdmin(admin.ModelAdmin):  # noqa: D101
         'modified',
     )
     readonly_fields = (
+        'uuid',
+        'verify_uuid',
         'user_id',
         'created',
         'modified',
         'user_full_name',
         'learning_context_key',
+        'learning_context_name',
         'credential_type',
         'status',
         'url',
         'legacy_id',
         'generation_task_id',
     )
-    search_fields = ("learning_context_key", "user_id", "user_full_name")
+    search_fields = ("learning_context_key", "user_id", "user_full_name", "uuid")
     list_filter = ("learning_context_key", "credential_type", "status")
+    change_actions = ('reissue_credential',)
+
+    def save_model(self, request: HttpRequest, obj: Credential, _form: forms.ModelForm, _change: bool):  # noqa: FBT001
+        """Display validation errors as messages in the admin interface."""
+        try:
+            obj.save()
+        except ValidationError as e:
+            self.message_user(request, e.message or "Invalid data", level=messages.ERROR)
+            # Optionally, redirect to the change form with the error message
+            return
 
     def get_form(self, request: HttpRequest, obj: Credential | None = None, **kwargs) -> forms.ModelForm:
         """Hide the download_url field."""
@@ -263,3 +277,16 @@ class CredentialAdmin(admin.ModelAdmin):  # noqa: D101
         if obj.download_url:
             return format_html("<a href='{url}'>{url}</a>", url=obj.download_url)
         return "-"
+
+    @action(label="Reissue credential", description="Reissue the credential for the user.")
+    def reissue_credential(self, request: HttpRequest, obj: Credential):
+        """Reissue the credential for the user."""
+        try:
+            new_credential = obj.reissue()
+            admin_url = reverse('admin:learning_credentials_credential_change', args=[new_credential.pk])
+            message = format_html(
+                'The credential has been reissued as <a href="{}">{}</a>.', admin_url, new_credential.uuid
+            )
+            messages.success(request, message)
+        except CredentialConfiguration.DoesNotExist:
+            messages.error(request, "The configuration does not exist.")

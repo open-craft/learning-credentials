@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-import uuid
+import uuid as uuid_lib
 from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
@@ -16,6 +16,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import IntervalSchedule, PeriodicTask
 from edx_ace import Message, Recipient, ace
@@ -197,7 +198,7 @@ class CredentialConfiguration(TimeStampedModel):
         custom_options = _deep_merge(self.credential_type.custom_options, self.custom_options)
         return func(self.learning_context_key, custom_options)
 
-    def generate_credential_for_user(self, user_id: int, celery_task_id: int = 0):
+    def generate_credential_for_user(self, user_id: int, celery_task_id: int = 0) -> Credential:
         """
         Celery task for processing a single user's credential.
 
@@ -208,19 +209,24 @@ class CredentialConfiguration(TimeStampedModel):
         Args:
             user_id: The ID of the user to process the credential for.
             celery_task_id (optional): The ID of the Celery task that is running this function.
+
+        Returns:
+            The generated Credential object.
         """
         user = get_user_model().objects.get(id=user_id)
         # Use the name from the profile if it is not empty. Otherwise, use the first and last name.
         # We check if the profile exists because it may not exist in some cases (e.g., when a User is created manually).
         user_full_name = getattr(getattr(user, 'profile', None), 'name', f"{user.first_name} {user.last_name}")
+        learning_context_name = get_learning_context_name(self.learning_context_key)
         custom_options = _deep_merge(self.credential_type.custom_options, self.custom_options)
 
-        credential, _ = Credential.objects.update_or_create(
+        credential, _ = Credential.objects.exclude(status=Credential.Status.INVALIDATED).update_or_create(
             user_id=user_id,
             learning_context_key=self.learning_context_key,
             credential_type=self.credential_type.name,
             defaults={
                 'user_full_name': user_full_name,
+                'learning_context_name': learning_context_name,
                 'status': Credential.Status.GENERATING,
                 'generation_task_id': celery_task_id,
             },
@@ -245,6 +251,8 @@ class CredentialConfiguration(TimeStampedModel):
             #       Perhaps we could even include this in a processor to optimize it.
             if user.is_active and user.has_usable_password():
                 credential.send_email()
+
+        return credential
 
 
 # noinspection PyUnusedLocal
@@ -280,15 +288,32 @@ class Credential(TimeStampedModel):
 
     uuid = models.UUIDField(
         primary_key=True,
-        default=uuid.uuid4,
+        default=uuid_lib.uuid4,
         editable=False,
         help_text=_('Auto-generated UUID of the credential'),
     )
+    verify_uuid = models.UUIDField(
+        default=uuid_lib.uuid4,
+        editable=False,
+        help_text=_('UUID used for verifying the credential'),
+    )
     user_id = models.IntegerField(help_text=_('ID of the user receiving the credential'))
-    user_full_name = models.CharField(max_length=255, help_text=_('User receiving the credential'))
+    user_full_name = models.CharField(
+        max_length=255,
+        editable=False,
+        help_text=_('User receiving the credential. This field is used for validation purposes.'),
+    )
     learning_context_key = LearningContextKeyField(
         max_length=255,
         help_text=_('ID of a learning context (e.g., a course or a Learning Path) for which the credential was issued'),
+    )
+    learning_context_name = models.CharField(
+        max_length=255,
+        editable=False,
+        help_text=_(
+            'Name of the learning context for which the credential was issued. '
+            'This field is used for validation purposes.'
+        ),
     )
     credential_type = models.CharField(max_length=255, help_text=_('Type of the credential'))
     status = models.CharField(
@@ -300,16 +325,26 @@ class Credential(TimeStampedModel):
     download_url = models.URLField(blank=True, help_text=_('URL of the generated credential PDF (e.g., to S3)'))
     legacy_id = models.IntegerField(null=True, help_text=_('Legacy ID of the credential imported from another system'))
     generation_task_id = models.CharField(max_length=255, help_text=_('Task ID from the Celery queue'))
-
-    class Meta:  # noqa: D106
-        unique_together = (('user_id', 'learning_context_key', 'credential_type'),)
+    invalidated_at = models.DateTimeField(
+        null=True, editable=False, help_text=_('Timestamp when the credential was invalidated')
+    )
+    invalidation_reason = models.CharField(
+        max_length=255, blank=True, help_text=_('Reason for invalidating the credential')
+    )
 
     def __str__(self):  # noqa: D105
         return f"{self.credential_type} for {self.user_full_name} in {self.learning_context_key}"
 
+    def save(self, *args, **kwargs):
+        """If the invalidation reason is set, update the status and timestamp."""
+        if self.invalidation_reason and self.status != Credential.Status.INVALIDATED:
+            self.status = Credential.Status.INVALIDATED
+        if self.status == Credential.Status.INVALIDATED and not self.invalidated_at:
+            self.invalidated_at = timezone.now()
+        super().save(*args, **kwargs)
+
     def send_email(self):
         """Send a credential link to the student."""
-        learning_context_name = get_learning_context_name(self.learning_context_key)
         user = get_user_model().objects.get(id=self.user_id)
         msg = Message(
             name="certificate_generated",
@@ -318,11 +353,25 @@ class Credential(TimeStampedModel):
             language='en',
             context={
                 'certificate_link': self.download_url,
-                'course_name': learning_context_name,
+                'course_name': self.learning_context_name,
                 'platform_name': settings.PLATFORM_NAME,
             },
         )
         ace.send(msg)
+
+    def reissue(self) -> Self:
+        """Invalidate the current credential and create a new one."""
+        config = CredentialConfiguration.objects.get(
+            learning_context_key=self.learning_context_key,
+            credential_type__name=self.credential_type,
+        )
+
+        if self.invalidation_reason:
+            self.invalidation_reason += '\n'
+        self.invalidation_reason += 'Reissued'
+        self.save()
+
+        return config.generate_credential_for_user(self.user_id)
 
 
 class CredentialAsset(TimeStampedModel):

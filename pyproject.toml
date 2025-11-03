@@ -1,6 +1,6 @@
 [project]
 name = "learning-credentials"
-version = "0.4.0"
+version = "0.5.0"
 description = "A pluggable service for preparing Open edX credentials."
 dynamic = ["readme"]
 requires-python = ">=3.11"

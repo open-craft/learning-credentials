@@ -1,0 +1,83 @@
+{% extends "main_django.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block bodyextra %}
+    <div id="content" class="credential-verification-container content-wrapper main-container">
+        <section class="container">
+            <h1>{% trans "Credential verification page" %}</h1>
+            <form id="credentialVerificationForm" method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="credentialID">{% trans 'Credential ID' %}</label>
+                    <input type="text" id="credentialID" class="form-control" name="credentialID" required>
+                    <div id="formError" class="text-danger mt-2" style="display: none;"></div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    {% trans 'Verify' %}
+                </button>
+            </form>
+
+            <div id="verificationResults" class="p-0 border-0 mt-5"></div>
+        </section>
+    </div>
+
+    <script>
+    document.getElementById('credentialVerificationForm').onsubmit = async function(event) {
+        event.preventDefault();
+        let formError = document.getElementById('formError');
+        let verificationResults = document.getElementById('verificationResults');
+
+        let credentialId = document.getElementById('credentialID').value;
+        var url = '/api/learning_credentials/v1/metadata/' + encodeURIComponent(credentialId);
+
+        // Hide previous error messages.
+        formError.style.display = 'none';
+
+        await fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const table = document.createElement('table');
+                table.className = 'table table-striped table-bordered';
+                const tbody = document.createElement('tbody');
+                Object.entries(data).forEach(([key, value]) => {
+                    if (!!value) {
+                        const row = tbody.insertRow();
+                        const cellKey = row.insertCell();
+                        const cellValue = row.insertCell();
+                        cellKey.textContent = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                        cellValue.textContent = value;
+                    }
+                });
+                table.appendChild(tbody);
+                verificationResults.textContent = '';
+                verificationResults.appendChild(table);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                verificationResults.textContent = '';
+                formError.innerHTML = "An error occurred during verification. Please check the Credential ID and try again.";
+                formError.style.display = 'block';
+            });
+    }
+
+
+    $(document).ready(function(){
+        // Fill the credential ID field with URL 'credential' query param.
+        let urlParams = new URLSearchParams(window.location.search);
+        const uuid = urlParams.get('credential');
+
+        if (uuid) {
+            $('#credentialID').val(uuid);
+        }
+
+        // If the field is filled, submit the form automatically.
+        if ($('#credentialID').val()) {
+            $('#credentialVerificationForm').submit();
+        }
+
+        // Focus the field for user convenience.
+        $('#credentialID').focus();
+    });
+    </script>
+{% endblock %}

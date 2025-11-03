@@ -10,7 +10,6 @@ from uuid import UUID, uuid4
 import pytest
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
-from django.db import IntegrityError
 from django_celery_beat.models import PeriodicTask
 
 from learning_credentials.exceptions import AssetNotFoundError, CredentialGenerationError
@@ -266,7 +265,10 @@ class TestCredentialConfiguration:
 
     @pytest.mark.django_db
     @patch.object(Credential, 'send_email')
-    def test_generate_credential_for_user(self, mock_send_email: Mock, user: User):
+    @patch('learning_credentials.models.get_learning_context_name', return_value='Test Course')
+    def test_generate_credential_for_user(
+        self, mock_get_learning_context_name: Mock, mock_send_email: Mock, user: User
+    ):
         """Test the generate_credential_for_user method."""
         task_id = 123
 
@@ -274,6 +276,7 @@ class TestCredentialConfiguration:
         assert Credential.objects.filter(
             user_id=user.id,
             learning_context_key=self.config.learning_context_key,
+            learning_context_name=mock_get_learning_context_name.return_value,
             credential_type=self.credential_type,
             user_full_name=f"{user.first_name} {user.last_name}",
             status=Credential.Status.AVAILABLE,
@@ -301,7 +304,10 @@ class TestCredentialConfiguration:
 
     @pytest.mark.django_db
     @patch.object(Credential, 'send_email')
-    def test_generate_credential_for_user_update_existing(self, mock_send_email: Mock, user: User):
+    @patch('learning_credentials.models.get_learning_context_name', return_value='Test Course')
+    def test_generate_credential_for_user_update_existing(
+        self, mock_get_learning_context_name: Mock, mock_send_email: Mock, user: User
+    ):
         """Test the generate_credential_for_user method updates an existing credential."""
         Credential.objects.create(
             user_id=user.id,
@@ -317,6 +323,7 @@ class TestCredentialConfiguration:
         assert Credential.objects.filter(
             user_id=user.id,
             learning_context_key=self.config.learning_context_key,
+            learning_context_name=mock_get_learning_context_name.return_value,
             credential_type=self.credential_type,
             user_full_name=f"{user.first_name} {user.last_name}",
             status=Credential.Status.AVAILABLE,
@@ -327,7 +334,10 @@ class TestCredentialConfiguration:
 
     @pytest.mark.django_db
     @patch('learning_credentials.models.import_module')
-    def test_generate_credential_for_user_with_exception(self, mock_module: Mock, user: User):
+    @patch('learning_credentials.models.get_learning_context_name', return_value='Test Course')
+    def test_generate_credential_for_user_with_exception(
+        self, mock_get_learning_context_name: Mock, mock_module: Mock, user: User
+    ):
         """Test the generate_credential_for_user handles the case when the generation function raises an exception."""
         task_id = 123
 
@@ -345,6 +355,7 @@ class TestCredentialConfiguration:
         assert Credential.objects.filter(
             user_id=user.id,
             learning_context_key=self.config.learning_context_key,
+            learning_context_name=mock_get_learning_context_name.return_value,
             credential_type=self.credential_type,
             user_full_name=f"{user.first_name} {user.last_name}",
             status=Credential.Status.ERROR,
@@ -354,7 +365,8 @@ class TestCredentialConfiguration:
 
     @pytest.mark.django_db
     @patch.object(Credential, 'send_email')
-    def test_generate_credentials(self, mock_send_email: Mock):
+    @patch('learning_credentials.models.get_learning_context_name', return_value='Test Course')
+    def test_generate_credentials(self, mock_get_learning_context_name: Mock, mock_send_email: Mock):
         """Test the generate_credentials method that processes all eligible users."""
         self.credential_type.save()
         self.config.save()
@@ -433,35 +445,17 @@ class TestCredential:
         assert str(self.credential) == 'Test Type for Test User in course-v1:TestX+T101+2023'
 
     @pytest.mark.django_db
-    def test_unique_together_constraint(self):
-        """Test that the unique_together constraint is enforced."""
-        self.credential.save()
-        credential_2_info = {
-            "uuid": uuid4(),
-            "user_id": 1,
-            "user_full_name": 'Test User 2',
-            "learning_context_key": 'course-v1:TestX+T101+2023',
-            "credential_type": 'Test Type',
-            "status": Credential.Status.GENERATING,
-            "download_url": 'http://www.test2.com',
-            "generation_task_id": '122345',
-        }
-        with pytest.raises(IntegrityError):
-            Credential.objects.create(**credential_2_info)
-
-    @pytest.mark.django_db
     @patch('learning_credentials.models.settings')
-    @patch('learning_credentials.models.get_learning_context_name')
     @patch('learning_credentials.models.ace')
-    def test_send_email(self, mock_ace: Mock, mock_get_learning_context_name: Mock, mock_settings: Mock, user: User):
+    def test_send_email(self, mock_ace: Mock, mock_settings: Mock, user: User):
         """Test the send_email method sends an email to the user."""
-        mock_get_learning_context_name.return_value = "Test Course"
         mock_settings.PLATFORM_NAME = "Test Platform"
 
         credential = Credential.objects.create(
             user_id=user.id,
             user_full_name=f"{user.first_name} {user.last_name}",
             learning_context_key='course-v1:TestX+T101+2023',
+            learning_context_name="Test Course",
             credential_type='Test Type',
             status=Credential.Status.AVAILABLE,
             download_url='http://www.test.com/credential.pdf',
