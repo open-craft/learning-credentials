@@ -17,6 +17,7 @@ from pypdf import PdfWriter
 from pypdf.constants import UserAccessPermissions
 
 from learning_credentials.generators import (
+    FontError,
     _get_user_name,
     _register_font,
     _save_credential,
@@ -41,25 +42,38 @@ def test_get_user_name():
 @patch("learning_credentials.generators.CredentialAsset.get_asset_by_slug")
 def test_register_font_without_custom_font(mock_get_asset_by_slug: Mock):
     """Test the _register_font falls back to the default font when no custom font is specified."""
-    options = {}
-    assert _register_font(options) == "Helvetica"
+    assert _register_font('') is None
     mock_get_asset_by_slug.assert_not_called()
 
 
 @patch("learning_credentials.generators.CredentialAsset.get_asset_by_slug")
 @patch('learning_credentials.generators.TTFont')
-@patch("learning_credentials.generators.pdfmetrics.registerFont")
+@patch("learning_credentials.generators.registerFont")
 def test_register_font_with_custom_font(mock_register_font: Mock, mock_font_class: Mock, mock_get_asset_by_slug: Mock):
     """Test the _register_font registers the custom font when specified."""
     custom_font = "MyFont"
-    options = {"font": custom_font}
-
     mock_get_asset_by_slug.return_value = "font_path"
 
-    assert _register_font(options) == custom_font
+    assert _register_font(custom_font) == custom_font
     mock_get_asset_by_slug.assert_called_once_with(custom_font)
     mock_font_class.assert_called_once_with(custom_font, mock_get_asset_by_slug.return_value)
     mock_register_font.assert_called_once_with(mock_font_class.return_value)
+
+
+@patch("learning_credentials.generators.CredentialAsset.get_asset_by_slug")
+@patch('learning_credentials.generators.TTFont', side_effect=FontError("Font registration failed"))
+@patch("learning_credentials.generators.registerFont")
+def test_register_font_with_registration_failure(
+    mock_register_font: Mock, mock_font_class: Mock, mock_get_asset_by_slug: Mock
+):
+    """Test the _register_font returns None when font registration fails."""
+    custom_font = "MyFont"
+    mock_get_asset_by_slug.return_value = "font_path"
+
+    assert _register_font(custom_font) is None
+    mock_get_asset_by_slug.assert_called_once_with(custom_font)
+    mock_font_class.assert_called_once_with(custom_font, mock_get_asset_by_slug.return_value)
+    mock_register_font.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -87,7 +101,7 @@ def test_register_font_with_custom_font(mock_register_font: Mock, mock_font_clas
         ('Programming\n101\nAdvanced Programming', {}, {}),  # Multiline course name.
     ],
 )
-@patch('learning_credentials.generators.canvas.Canvas', return_value=Mock(stringWidth=Mock(return_value=10)))
+@patch('learning_credentials.generators.Canvas', return_value=Mock(stringWidth=Mock(return_value=10)))
 def test_write_text_on_template(mock_canvas_class: Mock, context_name: str, options: dict[str, int], expected: dict):
     """Test the _write_text_on_template function."""
     username = 'John Doe'
@@ -106,7 +120,7 @@ def test_write_text_on_template(mock_canvas_class: Mock, context_name: str, opti
 
     # Call the function with test parameters and mocks
     with patch('learning_credentials.generators.get_localized_credential_date', return_value=test_date):
-        _write_text_on_template(template_mock, font, username, context_name, options)
+        _write_text_on_template(template_mock, username, context_name, options)
 
     # Verifying that Canvas was the correct pagesize.
     # Use `call_args_list` to ignore the first argument, which is an instance of io.BytesIO.
@@ -251,7 +265,6 @@ def test_save_credential(mock_contentfile: Mock, mock_token_hex: Mock, storage: 
 )
 @patch('learning_credentials.generators._get_user_name')
 @patch('learning_credentials.generators.get_learning_context_name')
-@patch('learning_credentials.generators._register_font')
 @patch('learning_credentials.generators.PdfReader')
 @patch('learning_credentials.generators.PdfWriter')
 @patch(
@@ -264,7 +277,6 @@ def test_generate_pdf_credential(
     mock_write_text_on_template: Mock,
     mock_pdf_writer: Mock,
     mock_pdf_reader: Mock,
-    mock_register_font: Mock,
     mock_get_learning_context_name: Mock,
     mock_get_user_name: Mock,
     mock_get_asset_by_slug: Mock,
@@ -287,7 +299,6 @@ def test_generate_pdf_credential(
         mock_get_learning_context_name.assert_not_called()
     else:
         mock_get_learning_context_name.assert_called_once_with(course_id)
-    mock_register_font.assert_called_once_with(options)
     assert mock_pdf_reader.call_count == 2
     mock_pdf_writer.assert_called_once_with()
 

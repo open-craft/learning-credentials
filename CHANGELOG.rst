@@ -23,6 +23,7 @@ Added
 =====
 
 * Support for defining the course name using the ``cert_name_long`` field (in Studio's Advanced Settings).
+* Support for specifying individual fonts for PDF text elements.
 
 0.3.0 - 2025-09-17
 ******************

@@ -19,9 +19,9 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage, default_storage
 from pypdf import PdfReader, PdfWriter
 from pypdf.constants import UserAccessPermissions
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfgen import canvas
+from reportlab.pdfbase.pdfmetrics import FontError, FontNotFoundError, registerFont
+from reportlab.pdfbase.ttfonts import TTFError, TTFont
+from reportlab.pdfgen.canvas import Canvas
 
 from .compat import get_default_storage_url, get_learning_context_name, get_localized_credential_date
 from .models import CredentialAsset
@@ -33,6 +33,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
     from django.contrib.auth.models import User
     from opaque_keys.edx.keys import CourseKey
+    from pypdf import PageObject
 
 
 def _get_user_name(user: User) -> str:
@@ -45,25 +46,29 @@ def _get_user_name(user: User) -> str:
     return user.profile.name or f"{user.first_name} {user.last_name}"
 
 
-def _register_font(options: dict[str, Any]) -> str:
+def _register_font(font_name: str) -> str | None:
     """
     Register a custom font if specified in options. If not specified, use the default font (Helvetica).
 
-    :param options: A dictionary containing the font.
-    :returns: The font name.
+    :param font_name: The name of the font to register.
+    :returns: The font name if registered successfully, otherwise None.
     """
-    if font := options.get('font'):
-        pdfmetrics.registerFont(TTFont(font, CredentialAsset.get_asset_by_slug(font)))
+    if not font_name:
+        return None
 
-    return font or 'Helvetica'
+    try:
+        registerFont(TTFont(font_name, CredentialAsset.get_asset_by_slug(font_name)))
+    except (FontError, FontNotFoundError, TTFError):
+        log.exception("Error registering font %s", font_name)
+    else:
+        return font_name
 
 
-def _write_text_on_template(template: any, font: str, username: str, context_name: str, options: dict[str, Any]) -> any:
+def _write_text_on_template(template: PageObject, username: str, context_name: str, options: dict[str, Any]) -> Canvas:
     """
     Prepare a new canvas and write the user and course name onto it.
 
     :param template: Pdf template.
-    :param font: Font name.
     :param username: The name of the user to generate the credential for.
     :param context_name: The name of the learning context.
     :param options: A dictionary documented in the `generate_pdf_credential` function.
@@ -86,10 +91,12 @@ def _write_text_on_template(template: any, font: str, username: str, context_nam
         return tuple(int(hex_color[i : i + 2], 16) / 255 for i in range(0, 6, 2))
 
     template_width, template_height = template.mediabox[2:]
-    pdf_canvas = canvas.Canvas(io.BytesIO(), pagesize=(template_width, template_height))
+    pdf_canvas = Canvas(io.BytesIO(), pagesize=(template_width, template_height))
+    font = _register_font(options.get('font')) or 'Helvetica'
 
     # Write the learner name.
-    pdf_canvas.setFont(font, options.get('name_size', 32))
+    name_font = _register_font(options.get('name_font')) or font
+    pdf_canvas.setFont(name_font, options.get('name_size', 32))
     name_color = options.get('name_color', '#000')
     pdf_canvas.setFillColorRGB(*hex_to_rgb(name_color))
 
@@ -98,7 +105,8 @@ def _write_text_on_template(template: any, font: str, username: str, context_nam
     pdf_canvas.drawString(name_x, name_y, username)
 
     # Write the learning context name.
-    pdf_canvas.setFont(font, options.get('context_name_size', 28))
+    context_name_font = _register_font(options.get('context_name_font')) or font
+    pdf_canvas.setFont(context_name_font, options.get('context_name_size', 28))
     context_name_color = options.get('context_name_color', '#000')
     pdf_canvas.setFillColorRGB(*hex_to_rgb(context_name_color))
 
@@ -113,7 +121,8 @@ def _write_text_on_template(template: any, font: str, username: str, context_nam
 
     # Write the issue date.
     issue_date = get_localized_credential_date()
-    pdf_canvas.setFont(font, 12)
+    issue_date_font = _register_font(options.get('issue_date_font')) or font
+    pdf_canvas.setFont(issue_date_font, options.get('issue_date_size', 12))
     issue_date_color = options.get('issue_date_color', '#000')
     pdf_canvas.setFillColorRGB(*hex_to_rgb(issue_date_color))
 
@@ -181,17 +190,21 @@ def generate_pdf_credential(
       - template: The path to the PDF template file.
       - template_two_lines: The path to the PDF template file for two-line context names.
         A two-line context name is specified by using a semicolon as a separator.
-      - font: The name of the font to use.
+      - font: The name of the font to use. The default font is Helvetica.
       - name_y: The Y coordinate of the name on the credential (vertical position on the template).
       - name_color: The color of the name on the credential (hexadecimal color code).
       - name_size: The font size of the name on the credential. The default value is 32.
+      - name_font: The font of the name on the credential. It overrides the `font` option.
       - context_name: Specify the custom course or Learning Path name. If not provided, it will be retrieved
         automatically from the "cert_name_long" or "display_name" fields for courses, or from the Learning Path model.
       - context_name_y: The Y coordinate of the context name on the credential (vertical position on the template).
       - context_name_color: The color of the context name on the credential (hexadecimal color code).
       - context_name_size: The font size of the context name on the credential. The default value is 28.
+      - context_name_font: The font of the context name on the credential. It overrides the `font` option.
       - issue_date_y: The Y coordinate of the issue date on the credential (vertical position on the template).
       - issue_date_color: The color of the issue date on the credential (hexadecimal color code).
+      - issue_date_size: The font size of the issue date on the credential. The default value is 12.
+      - issue_date_font: The font of the issue date on the credential. It overrides the `font` option.
     """
     log.info("Starting credential generation for user %s", user.id)
 
@@ -206,8 +219,6 @@ def generate_pdf_credential(
     else:
         template_file = CredentialAsset.get_asset_by_slug(options['template'])
 
-    font = _register_font(options)
-
     # Load the PDF template.
     with template_file.open('rb') as template_file:
         template = PdfReader(template_file).pages[0]
@@ -215,7 +226,7 @@ def generate_pdf_credential(
         credential = PdfWriter()
 
         # Create a new canvas, prepare the page and write the data
-        pdf_canvas = _write_text_on_template(template, font, username, context_name, options)
+        pdf_canvas = _write_text_on_template(template, username, context_name, options)
 
         overlay_pdf = PdfReader(io.BytesIO(pdf_canvas.getpdfdata()))
         template.merge_page(overlay_pdf.pages[0])
