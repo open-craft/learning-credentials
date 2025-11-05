@@ -185,7 +185,8 @@ def generate_pdf_credential(
       - name_y: The Y coordinate of the name on the credential (vertical position on the template).
       - name_color: The color of the name on the credential (hexadecimal color code).
       - name_size: The font size of the name on the credential. The default value is 32.
-      - context_name: Specify the custom course or Learning Path name.
+      - context_name: Specify the custom course or Learning Path name. If not provided, it will be retrieved
+        automatically from the "cert_name_long" or "display_name" fields for courses, or from the Learning Path model.
       - context_name_y: The Y coordinate of the context name on the credential (vertical position on the template).
       - context_name_color: The color of the context name on the credential (hexadecimal color code).
       - context_name_size: The font size of the context name on the credential. The default value is 28.

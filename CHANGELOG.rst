@@ -16,6 +16,14 @@ Unreleased
 
 *
 
+0.3.1 - 2025-12-15
+******************
+
+Added
+=====
+
+* Support for defining the course name using the ``cert_name_long`` field (in Studio's Advanced Settings).
+
 0.3.0 - 2025-09-17
 ******************
 
