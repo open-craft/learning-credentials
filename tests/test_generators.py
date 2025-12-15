@@ -236,20 +236,22 @@ def test_save_credential(mock_contentfile: Mock, mock_token_hex: Mock, storage: 
     ("context_name", "options", "expected_template_slug", "expected_context_name"),
     [
         # Default.
-        ('Test Course', {'template': 'template_slug'}, 'template_slug', 'Test Course'),
-        # Specify a different template for two-line course names and replace semicolon with newline in course name.
-        (
-            'Test Course; Test Course',
-            {'template': 'template_slug', 'template_two_lines': 'template_two_lines_slug'},
-            'template_two_lines_slug',
-            'Test Course\n Test Course',
-        ),
-        # Do not replace semicolon with newline when the `template_two_lines` option is not specified.
-        ('Test Course; Test Course', {'template': 'template_slug'}, 'template_slug', 'Test Course; Test Course'),
+        ('Test Course', {'template': 'default'}, 'default', 'Test Course'),
         # Override course name.
-        ('Test Course', {'template': 'template_slug', 'context_name': 'Override'}, 'template_slug', 'Override'),
+        ('Test Course', {'template': 'default', 'context_name': 'Override'}, 'default', 'Override'),
         # Ignore empty course name override.
-        ('Test Course', {'template': 'template_slug', 'context_name': ''}, 'template_slug', 'Test Course'),
+        ('Test Course', {'template': 'default', 'context_name': ''}, 'default', 'Test Course'),
+        # Specify a different template for multiline course names and replace \n with newline.
+        ('Test\nCourse', {'template': 'default', 'template_multiline': 'multiline'}, 'multiline', 'Test\nCourse'),
+        ('Test\\nCourse', {'template_multiline': 'multiline'}, 'multiline', 'Test\nCourse'),
+        # Backward compatibility with semicolon separator.
+        ('Test;Course', {'template_multiline': 'multiline'}, 'multiline', 'Test\nCourse'),
+        # Mixed semicolon and newline separators.
+        ('Te\nst\\nCourse;', {'template_multiline': 'multiline'}, 'multiline', 'Te\nst\nCourse\n'),
+        # Check backward compatibility with `template_two_lines` option.
+        ('Test\\nCourse', {'template': 'default', 'template_two_lines': 'two_lines'}, 'two_lines', 'Test\nCourse'),
+        # Ensure that the default template is used when no multiline template is specified.
+        ('Test\\nCourse', {'template': 'default'}, 'default', 'Test\nCourse'),
     ],
 )
 @patch(
@@ -308,3 +310,17 @@ def test_generate_pdf_credential(
     assert args[-1] == options
 
     mock_save_credential.assert_called_once()
+
+@patch('learning_credentials.generators.get_learning_context_name')
+@patch('learning_credentials.generators._get_user_name')
+def test_generate_pdf_credential_no_template(mock_get_user_name: Mock, mock_get_learning_context_name: Mock):
+    """Test that generate_pdf_credential raises ValueError when no template is specified."""
+    course_id = CourseKey.from_string('course-v1:edX+DemoX+Demo_Course')
+    user = Mock()
+    options = {}  # No template specified.
+
+    with pytest.raises(ValueError, match=r"Template path must be specified in options."):
+        generate_pdf_credential(course_id, user, Mock(), options)
+
+    mock_get_user_name.assert_called_once_with(user)
+    mock_get_learning_context_name.assert_called_once_with(course_id)

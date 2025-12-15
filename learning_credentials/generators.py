@@ -177,7 +177,7 @@ def generate_pdf_credential(
     credential_uuid: UUID,
     options: dict[str, Any],
 ) -> str:
-    """
+    r"""
     Generate a PDF credential.
 
     :param learning_context_key: The ID of the course or learning path the credential is for.
@@ -188,8 +188,8 @@ def generate_pdf_credential(
 
     Options:
       - template: The path to the PDF template file.
-      - template_two_lines: The path to the PDF template file for two-line context names.
-        A two-line context name is specified by using a semicolon as a separator.
+      - template_multiline: The path to the PDF template file for multiline context names.
+        A multiline context name is specified by using '\n' or ';' as a separator.
       - font: The name of the font to use. The default font is Helvetica.
       - name_y: The Y coordinate of the name on the credential (vertical position on the template).
       - name_color: The color of the name on the credential (hexadecimal color code).
@@ -210,14 +210,20 @@ def generate_pdf_credential(
 
     username = _get_user_name(user)
     context_name = options.get('context_name') or get_learning_context_name(learning_context_key)
+    template_path = options.get('template')
+
+    # Handle multiline context name (we support semicolon as a separator to preserve backward compatibility).
+    context_name = context_name.replace(';', '\n').replace(r'\n', '\n')
+    if '\n' in context_name:
+        # `template_two_lines` is kept for backward compatibility.
+        template_path = options.get('template_multiline', options.get('template_two_lines', template_path))
+
+    if not template_path:
+        msg = "Template path must be specified in options."
+        raise ValueError(msg)
 
     # Get template from the CredentialAsset.
-    # HACK: We support two-line strings by using a semicolon as a separator.
-    if ';' in context_name and (template_path := options.get('template_two_lines')):
-        template_file = CredentialAsset.get_asset_by_slug(template_path)
-        context_name = context_name.replace(';', '\n')
-    else:
-        template_file = CredentialAsset.get_asset_by_slug(options['template'])
+    template_file = CredentialAsset.get_asset_by_slug(template_path)
 
     # Load the PDF template.
     with template_file.open('rb') as template_file:

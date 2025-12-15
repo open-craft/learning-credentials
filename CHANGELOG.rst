@@ -24,6 +24,12 @@ Added
 
 * Support for defining the course name using the ``cert_name_long`` field (in Studio's Advanced Settings).
 * Support for specifying individual fonts for PDF text elements.
+* Support for \n in learning context names in PDF certificates.
+
+Modified
+========
+
+* Replaced ``template_two_lines`` with ``template_multiline``.
 
 0.3.0 - 2025-09-17
 ******************
