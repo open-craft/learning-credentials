@@ -136,7 +136,11 @@ def _write_text_on_template(template: PageObject, username: str, context_name: s
     issue_date_x = (template_width - pdf_canvas.stringWidth(issue_date)) / 2
     issue_date_y = options.get('issue_date_y', 120)
 
-    pdf_canvas.drawString(issue_date_x, issue_date_y, issue_date)
+    issue_date_char_space = options.get(
+        'issue_date_char_space', getattr(settings, 'LEARNING_CREDENTIALS_ISSUE_DATE_CHAR_SPACE', 0)
+    )
+
+    pdf_canvas.drawString(issue_date_x, issue_date_y, issue_date, charSpace=issue_date_char_space)
 
     return pdf_canvas
 
@@ -215,6 +219,8 @@ def generate_pdf_credential(
       - issue_date_color: The color of the issue date on the credential (hexadecimal color code).
       - issue_date_size: The font size of the issue date on the credential. The default value is 12.
       - issue_date_font: The font of the issue date on the credential. It overrides the `font` option.
+      - issue_date_char_space: The character spacing of the issue date on the credential
+        (default is 0.0, unless specified otherwise in the instance settings).
       - issue_date_uppercase: If set to true (without quotes), the issue date will be converted to uppercase.
         The default value is False, unless specified otherwise in the instance settings.
     """

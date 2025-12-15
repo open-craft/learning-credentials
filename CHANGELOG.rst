@@ -26,6 +26,7 @@ Added
 * Support for specifying individual fonts for PDF text elements.
 * Support for \n in learning context names in PDF certificates.
 * Options for uppercase name and issue date in PDF certificates.
+* Option for defining character spacing for issue date in PDF certificates.
 
 Modified
 ========

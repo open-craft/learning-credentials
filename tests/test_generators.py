@@ -216,6 +216,43 @@ def test_write_text_on_template_uppercase(
     assert mock_canvas_class.return_value.drawString.mock_calls[-1][1][2] == expected_date
 
 
+@pytest.mark.parametrize(
+    ("option_value", "setting_value", "expected_char_space"),
+    [
+        (None, 0, 0),  # No option set, setting is 0 - use default
+        (None, 2, 2),  # No option set, setting has value - use setting
+        (0, 0, 0),  # Explicitly set to 0, setting is 0
+        (0, 2, 0),  # Explicitly set to 0, setting has value - option overrides
+        (3, 0, 3),  # Explicitly set to 3, setting is 0 - option overrides
+        (3, 2, 3),  # Explicitly set to 3, setting has value - option overrides
+    ],
+)
+@patch('learning_credentials.generators.get_localized_credential_date', return_value='April 1, 2021')
+@patch('learning_credentials.generators.Canvas', return_value=Mock(stringWidth=Mock(return_value=10)))
+def test_write_text_on_template_issue_date_char_space(
+    mock_canvas_class: Mock,
+    _mock_get_date: Mock,  # noqa: PT019
+    option_value: int | None,
+    setting_value: int,
+    expected_char_space: int,
+):
+    """Test the _write_text_on_template function with issue_date_char_space option and settings."""
+    username = "John Doe"
+    context_name = "Programming 101"
+    template_mock = Mock(mediabox=[0, 0, 300, 200])
+    options = {}
+
+    if option_value is not None:
+        options['issue_date_char_space'] = option_value
+
+    with override_settings(LEARNING_CREDENTIALS_ISSUE_DATE_CHAR_SPACE=setting_value):
+        _write_text_on_template(template_mock, username, context_name, options)
+
+    # Check that the last drawString call (for issue date) has the correct charSpace parameter
+    last_draw_call = mock_canvas_class.return_value.drawString.mock_calls[-1]
+    assert last_draw_call[2]['charSpace'] == expected_char_space
+
+
 @override_settings(LMS_ROOT_URL="https://example.com", MEDIA_URL="media/")
 @pytest.mark.parametrize(
     "storage",
