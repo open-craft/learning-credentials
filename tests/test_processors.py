@@ -23,6 +23,8 @@ from learning_credentials.processors import (
 from test_utils.factories import UserFactory
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from django.contrib.auth.models import User
 
 
@@ -361,7 +363,7 @@ def learning_path_with_courses(users: list[User]) -> LearningPath:
 @pytest.mark.django_db
 def test_retrieve_data_for_learning_path(
     patch_target: str,
-    function_to_test: callable,
+    function_to_test: Callable[[str, dict], list[int]],
     learning_path_with_courses: LearningPath,
     users: list[User],
 ):

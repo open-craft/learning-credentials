@@ -4,6 +4,7 @@ data_file = .coverage
 source=learning_credentials
 omit =
     compat.py
+    manage.py
     test_settings.py
     */migrations/*
     *admin.py

@@ -259,7 +259,7 @@ def test_save_credential(mock_contentfile: Mock, mock_token_hex: Mock, storage: 
     return_value=Mock(getpdfdata=Mock(return_value=b'pdf_data')),
 )
 @patch('learning_credentials.generators._save_credential', return_value='credential_url')
-def test_generate_pdf_credential(  # noqa: PLR0913
+def test_generate_pdf_credential(
     mock_save_credential: Mock,
     mock_write_text_on_template: Mock,
     mock_pdf_writer: Mock,

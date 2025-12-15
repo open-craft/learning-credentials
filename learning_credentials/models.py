@@ -112,7 +112,7 @@ class CredentialConfiguration(TimeStampedModel):
         task_path = f"{task.__wrapped__.__module__}.{task.__wrapped__.__name__}"
 
         if self._state.adding:
-            schedule, created = IntervalSchedule.objects.get_or_create(every=10, period=IntervalSchedule.DAYS)
+            schedule, _created = IntervalSchedule.objects.get_or_create(every=10, period=IntervalSchedule.DAYS)
             self.periodic_task = PeriodicTask.objects.create(
                 enabled=False,
                 interval=schedule,

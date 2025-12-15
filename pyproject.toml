@@ -1,6 +1,6 @@
 [project]
 name = "learning-credentials"
-version = "0.2.4"
+version = "0.3.0"
 description = "A pluggable service for preparing Open edX credentials."
 dynamic = ["readme"]
 requires-python = ">=3.11"
@@ -21,6 +21,8 @@ classifiers = [
 dependencies = [
     "django",  # Web application framework
     "django-model-utils",  # Provides TimeStampedModel abstract base class
+    "edx-api-doc-tools",  # A toolkit for documenting REST APIs that are created with DRF
+    "edx-django-utils",  # Open edX Django utilities (e.g., plugin infrastructure)
     "edx-opaque-keys",  # Create and introspect Course and XBlock identities
     "celery",  # Distributed task queue
     "django-celery-beat",  # Periodic task scheduler
@@ -63,7 +65,7 @@ test = [
     "factory-boy",
 ]
 django42 = ["django>=4.2,<5.0"]
-django52 = ["django>=5.2,<5.3"]
+django52 = ["django>=5.2,<6.0"]
 ci = ["tox", "tox-uv"]
 quality = ["ruff", "yamllint"]
 doc = ["Sphinx", "doc8", "sphinx-book-theme", "twine"]
@@ -74,15 +76,16 @@ dev = [
     { include-group = "doc" },
     "diff-cover",
     "edx-i18n-tools",
+    "ty",  # Type checker.
+    "django-types",  # Type stubs for Django.
     # External dev constraints (DO NOT REMOVE THIS LINE)
-    "Django<5.0",
+    "Django<6.0",
 ]
 
 [tool.uv]
 constraint-dependencies = [
     # External constraints (DO NOT REMOVE THIS LINE)
     "elasticsearch<7.14.0",
-    "pip<24.3",
 ]
 conflicts = [
     [
@@ -178,10 +181,12 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 'tests/*' = [
-    'S101',   # assert
-    'INP001', # implicit-namespace-package
-    'SLF001', # private-member-access
-    'RUF018', # assignment-in-assert
+    'S101',    # assert
+    'INP001',  # implicit-namespace-package
+    'SLF001',  # private-member-access
+    'RUF018',  # assignment-in-assert
+    'ARG002',  # unused-method-argument
+    'PLR0913', # too-many-arguments
 ]
 
 [tool.ruff.lint.flake8-annotations]
@@ -192,6 +197,11 @@ convention = "google"
 
 [tool.ruff.lint.pylint]
 allow-magic-value-types = ['int', 'str']
+
+[tool.ruff.lint.flake8-type-checking]
+# Add quotes around type annotations, if doing so would allow
+# an import to be moved into a type-checking block.
+quote-annotations = true
 
 [tool.ruff.format]
 quote-style = "preserve"
@@ -207,3 +217,25 @@ filterwarnings = [
 DJANGO_SETTINGS_MODULE = "test_settings"
 addopts = "--cov learning_credentials --cov tests --cov-report term-missing --cov-report xml"
 norecursedirs = ".* docs requirements site-packages"
+
+[tool.ty.rules]
+unresolved-attribute = "warn"
+
+[[tool.ty.overrides]]
+include = ["learning_credentials/settings/*.py"]
+
+[tool.ty.overrides.rules]
+unresolved-attribute = "ignore"
+
+[[tool.ty.overrides]]
+include = ["learning_credentials/compat.py"]
+
+[tool.ty.overrides.rules]
+unresolved-import = "ignore"
+
+[[tool.ty.overrides]]
+include = ["tests/**", "test_utils/**"]
+
+[tool.ty.overrides.rules]
+possibly-unbound-attribute = "ignore"
+unresolved-attribute = "ignore"
