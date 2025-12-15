@@ -169,6 +169,53 @@ def test_write_text_on_template(mock_canvas_class: Mock, context_name: str, opti
     assert canvas_object.drawString.mock_calls[-1][1] == (expected_issue_date_x, expected_issue_date_y, test_date)
 
 
+@pytest.mark.parametrize(
+    ("option_value", "setting_value", "expected_uppercase"),
+    [
+        (None, False, False),  # No option set, setting is False - use default (lowercase)
+        (None, True, True),  # No option set, setting is True - use setting (uppercase)
+        (False, False, False),  # Explicitly disabled, setting is False
+        (False, True, False),  # Explicitly disabled, setting is True - option overrides
+        (True, False, True),  # Explicitly enabled, setting is False - option overrides
+        (True, True, True),  # Explicitly enabled, setting is True
+    ],
+)
+@patch('learning_credentials.generators.get_localized_credential_date', return_value='April 1, 2021')
+@patch('learning_credentials.generators.Canvas', return_value=Mock(stringWidth=Mock(return_value=10)))
+def test_write_text_on_template_uppercase(
+    mock_canvas_class: Mock,
+    mock_get_date: Mock,
+    option_value: bool | None,
+    setting_value: bool,
+    expected_uppercase: bool,
+):
+    """Test the _write_text_on_template function with uppercase option and settings."""
+    username = "John Doe"
+    context_name = "Programming 101"
+    template_mock = Mock(mediabox=[0, 0, 300, 200])
+    options = {}
+
+    if expected_uppercase:
+        expected_name = "JOHN DOE"
+        expected_date = "APRIL 1, 2021"
+    else:
+        expected_name = username
+        expected_date = mock_get_date.return_value
+
+    if option_value is not None:
+        options['name_uppercase'] = option_value
+        options['issue_date_uppercase'] = option_value
+
+    with override_settings(
+        LEARNING_CREDENTIALS_NAME_UPPERCASE=setting_value,
+        LEARNING_CREDENTIALS_ISSUE_DATE_UPPERCASE=setting_value,
+    ):
+        _write_text_on_template(template_mock, username, context_name, options)
+
+    assert mock_canvas_class.return_value.drawString.mock_calls[-3][1][2] == expected_name
+    assert mock_canvas_class.return_value.drawString.mock_calls[-1][1][2] == expected_date
+
+
 @override_settings(LMS_ROOT_URL="https://example.com", MEDIA_URL="media/")
 @pytest.mark.parametrize(
     "storage",
@@ -310,6 +357,7 @@ def test_generate_pdf_credential(
     assert args[-1] == options
 
     mock_save_credential.assert_called_once()
+
 
 @patch('learning_credentials.generators.get_learning_context_name')
 @patch('learning_credentials.generators._get_user_name')

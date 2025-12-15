@@ -95,6 +95,9 @@ def _write_text_on_template(template: PageObject, username: str, context_name: s
     font = _register_font(options.get('font')) or 'Helvetica'
 
     # Write the learner name.
+    if options.get('name_uppercase', getattr(settings, 'LEARNING_CREDENTIALS_NAME_UPPERCASE', False)):
+        username = username.upper()
+
     name_font = _register_font(options.get('name_font')) or font
     pdf_canvas.setFont(name_font, options.get('name_size', 32))
     name_color = options.get('name_color', '#000')
@@ -102,6 +105,7 @@ def _write_text_on_template(template: PageObject, username: str, context_name: s
 
     name_x = (template_width - pdf_canvas.stringWidth(username)) / 2
     name_y = options.get('name_y', 290)
+
     pdf_canvas.drawString(name_x, name_y, username)
 
     # Write the learning context name.
@@ -121,6 +125,9 @@ def _write_text_on_template(template: PageObject, username: str, context_name: s
 
     # Write the issue date.
     issue_date = get_localized_credential_date()
+    if options.get('issue_date_uppercase', getattr(settings, 'LEARNING_CREDENTIALS_ISSUE_DATE_UPPERCASE', False)):
+        issue_date = issue_date.upper()
+
     issue_date_font = _register_font(options.get('issue_date_font')) or font
     pdf_canvas.setFont(issue_date_font, options.get('issue_date_size', 12))
     issue_date_color = options.get('issue_date_color', '#000')
@@ -128,6 +135,7 @@ def _write_text_on_template(template: PageObject, username: str, context_name: s
 
     issue_date_x = (template_width - pdf_canvas.stringWidth(issue_date)) / 2
     issue_date_y = options.get('issue_date_y', 120)
+
     pdf_canvas.drawString(issue_date_x, issue_date_y, issue_date)
 
     return pdf_canvas
@@ -195,6 +203,8 @@ def generate_pdf_credential(
       - name_color: The color of the name on the credential (hexadecimal color code).
       - name_size: The font size of the name on the credential. The default value is 32.
       - name_font: The font of the name on the credential. It overrides the `font` option.
+      - name_uppercase: If set to true (without quotes), the name will be converted to uppercase.
+        The default value is False, unless specified otherwise in the instance settings.
       - context_name: Specify the custom course or Learning Path name. If not provided, it will be retrieved
         automatically from the "cert_name_long" or "display_name" fields for courses, or from the Learning Path model.
       - context_name_y: The Y coordinate of the context name on the credential (vertical position on the template).
@@ -205,6 +215,8 @@ def generate_pdf_credential(
       - issue_date_color: The color of the issue date on the credential (hexadecimal color code).
       - issue_date_size: The font size of the issue date on the credential. The default value is 12.
       - issue_date_font: The font of the issue date on the credential. It overrides the `font` option.
+      - issue_date_uppercase: If set to true (without quotes), the issue date will be converted to uppercase.
+        The default value is False, unless specified otherwise in the instance settings.
     """
     log.info("Starting credential generation for user %s", user.id)
 

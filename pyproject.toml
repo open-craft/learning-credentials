@@ -187,6 +187,7 @@ ignore = [
     'RUF018',  # assignment-in-assert
     'ARG002',  # unused-method-argument
     'PLR0913', # too-many-arguments
+    'FBT001',  # flake8-boolean-trap
 ]
 
 [tool.ruff.lint.flake8-annotations]

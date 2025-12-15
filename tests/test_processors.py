@@ -137,7 +137,7 @@ def test_are_grades_passing_criteria(
     user_grades: dict[str, float],
     required_grades: dict[str, float],
     category_weights: dict[str, float],
-    expected: bool,  # noqa: FBT001
+    expected: bool,
 ):
     """Test that the user grades are compared to the required grades correctly."""
     assert _are_grades_passing_criteria(user_grades, required_grades, category_weights) == expected
