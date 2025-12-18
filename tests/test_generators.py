@@ -85,6 +85,7 @@ def test_register_font_with_registration_failure(
             {
                 'name_y': 250,
                 'context_name_y': 200,
+                'issue_date_x': 100,
                 'issue_date_y': 150,
                 'name_color': '123',
                 'context_name_color': '#9B192A',
@@ -134,7 +135,7 @@ def test_write_text_on_template(mock_canvas_class: Mock, context_name: str, opti
     expected_name_y = options.get('name_y', 290)
     expected_context_name_x = (template_width - string_width) / 2
     expected_context_name_y = options.get('context_name_y', 220)
-    expected_issue_date_x = (template_width - string_width) / 2
+    expected_issue_date_x = (template_width - string_width) / 2 + options.get('issue_date_x', 0)
     expected_issue_date_y = options.get('issue_date_y', 120)
 
     # Expected colors for setFillColorRGB method

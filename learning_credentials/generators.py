@@ -134,6 +134,7 @@ def _write_text_on_template(template: PageObject, username: str, context_name: s
     pdf_canvas.setFillColorRGB(*hex_to_rgb(issue_date_color))
 
     issue_date_x = (template_width - pdf_canvas.stringWidth(issue_date)) / 2
+    issue_date_x += options.get('issue_date_x', 0)
     issue_date_y = options.get('issue_date_y', 120)
 
     issue_date_char_space = options.get(
@@ -215,6 +216,8 @@ def generate_pdf_credential(
       - context_name_color: The color of the context name on the credential (hexadecimal color code).
       - context_name_size: The font size of the context name on the credential. The default value is 28.
       - context_name_font: The font of the context name on the credential. It overrides the `font` option.
+      - issue_date_x: The horizontal offset for the issue date from its centered position
+        (positive values move right, negative values move left; default is 0).
       - issue_date_y: The Y coordinate of the issue date on the credential (vertical position on the template).
       - issue_date_color: The color of the issue date on the credential (hexadecimal color code).
       - issue_date_size: The font size of the issue date on the credential. The default value is 12.

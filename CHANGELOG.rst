@@ -27,6 +27,7 @@ Added
 * Support for \n in learning context names in PDF certificates.
 * Options for uppercase name and issue date in PDF certificates.
 * Option for defining character spacing for issue date in PDF certificates.
+* Option for defining the horizontal offset of the issue date from its centered position (``issue_date_x``).
 
 Modified
 ========
