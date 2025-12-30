@@ -74,6 +74,7 @@ dev = [
     { include-group = "ci" },
     { include-group = "quality" },
     { include-group = "doc" },
+    { include-group = "django42" },
     "diff-cover",
     "edx-i18n-tools",
     "ty",  # Type checker.

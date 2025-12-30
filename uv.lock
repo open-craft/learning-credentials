@@ -11,6 +11,9 @@ conflicts = [[
     { package = "learning-credentials", group = "dev" },
     { package = "learning-credentials", group = "django42" },
     { package = "learning-credentials", group = "django52" },
+], [
+    { package = "learning-credentials", group = "dev" },
+    { package = "learning-credentials", group = "django52" },
 ]]
 
 [manifest]
@@ -628,8 +631,8 @@ name = "dj-inmemorystorage"
 version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "six" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/bb/5b/89366ae96a0213437fd40b2e76791e8adcf790eda597a879bd2595bc41a5/dj-inmemorystorage-2.1.0.tar.gz", hash = "sha256:1771801613414262803a1a1e97dafd2b7a563e78fbcbfa2b6f841c9d8e7b872a", size = 6963, upload-time = "2020-03-30T17:49:12.045Z" }
@@ -648,9 +651,9 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 dependencies = [
-    { name = "asgiref", marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "sqlparse", marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "tzdata", marker = "(sys_platform == 'win32' and extra == 'group-20-learning-credentials-django42') or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52') or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "asgiref", marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "sqlparse", marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "tzdata", marker = "(sys_platform == 'win32' and extra == 'group-20-learning-credentials-dev') or (sys_platform == 'win32' and extra == 'group-20-learning-credentials-django42') or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52') or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ce/ff/6aa5a94b85837af893ca82227301ac6ddf4798afda86151fb2066d26ca0a/django-4.2.27.tar.gz", hash = "sha256:b865fbe0f4a3d1ee36594c5efa42b20db3c8bbb10dff0736face1c6e4bda5b92", size = 10432781, upload-time = "2025-12-02T14:01:49.006Z" }
 wheels = [
@@ -668,9 +671,9 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 dependencies = [
-    { name = "asgiref", marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "sqlparse", marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "tzdata", marker = "(sys_platform == 'win32' and extra == 'group-20-learning-credentials-dev') or (sys_platform == 'win32' and extra != 'group-20-learning-credentials-django42') or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52') or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "asgiref", marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
+    { name = "sqlparse", marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
+    { name = "tzdata", marker = "(sys_platform == 'win32' and extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42') or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52') or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e6/e5/2671df24bf0ded831768ef79532e5a7922485411a5696f6d979568591a37/django-5.2.10.tar.gz", hash = "sha256:74df100784c288c50a2b5cad59631d71214f40f72051d5af3fdf220c20bdbbbe", size = 10880754, upload-time = "2026-01-06T18:55:26.817Z" }
 wheels = [
@@ -684,8 +687,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "celery" },
     { name = "cron-descriptor" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-timezone-field" },
     { name = "python-crontab" },
     { name = "tzdata" },
@@ -700,8 +703,8 @@ name = "django-config-models"
 version = "2.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "djangorestframework" },
     { name = "edx-django-utils" },
 ]
@@ -716,8 +719,8 @@ version = "3.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "coverage" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a4/d7/4e104b50911d1328e5cc26e89feca60ed0f12ea9b5f7e8ce776ce26d84c8/django_coverage_plugin-3.2.0.tar.gz", hash = "sha256:0e1460294ecd4b192bd09788ab9ad9380d9b8c9b45925b408ce6c620ac352585", size = 29252, upload-time = "2025-10-05T22:42:05.337Z" }
 wheels = [
@@ -729,8 +732,8 @@ name = "django-crum"
 version = "0.7.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/34/1d/c56588f67130aeef8828e47535e8551337d2ae02f91f1414da61bc5e49fb/django-crum-0.7.9.tar.gz", hash = "sha256:65e9bc0f070a663fafc4d9e357f45fd4e6f01838b20a9e2fb7670f5706754288", size = 5168, upload-time = "2020-11-10T17:15:35.124Z" }
 wheels = [
@@ -743,8 +746,8 @@ version = "0.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/bd/e5/aeb7c9f763d879006d33814b457677fa141ad6def17e57d8273df527ab4b/django_fernet_fields_v2-0.9.tar.gz", hash = "sha256:998476968be1ded3eabb4fa51b27ceddcae295c8227c304f117a3348ece8cbda", size = 7525, upload-time = "2023-08-15T13:44:17.787Z" }
 wheels = [
@@ -756,8 +759,8 @@ name = "django-model-utils"
 version = "5.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/81/60/5e232c32a2c977cc1af8c70a38ef436598bc649ad89c2c4568454edde2c9/django_model_utils-5.0.0.tar.gz", hash = "sha256:041cdd6230d2fbf6cd943e1969318bce762272077f4ecd333ab2263924b4e5eb", size = 80559, upload-time = "2024-09-04T11:35:22.858Z" }
 wheels = [
@@ -778,8 +781,8 @@ name = "django-push-notifications"
 version = "3.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/89/85/7fb804fcab89f0b00d816d2359516f444fbb9117dadb7b7d242d205aede4/django_push_notifications-3.3.0.tar.gz", hash = "sha256:fed8b48be2f956c72567e8713a1865b4a1b1d56d22193328b1f04fbcf169b9f5", size = 64488, upload-time = "2025-11-16T06:45:51.92Z" }
 wheels = [
@@ -791,8 +794,8 @@ name = "django-redis"
 version = "6.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "redis" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/08/53/dbcfa1e528e0d6c39947092625b2c89274b5d88f14d357cee53c4d6dbbd4/django_redis-6.0.0.tar.gz", hash = "sha256:2d9cb12a20424a4c4dde082c6122f486628bae2d9c2bee4c0126a4de7fda00dd", size = 56904, upload-time = "2025-06-17T18:15:46.376Z" }
@@ -811,8 +814,8 @@ name = "django-timezone-field"
 version = "7.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/da/05/9b93a66452cdb8a08ab26f08d5766d2332673e659a8b2aeb73f2a904d421/django_timezone_field-7.2.1.tar.gz", hash = "sha256:def846f9e7200b7b8f2a28fcce2b78fb2d470f6a9f272b07c4e014f6ba4c6d2e", size = 13096, upload-time = "2025-12-06T23:50:44.591Z" }
 wheels = [
@@ -836,8 +839,8 @@ name = "django-waffle"
 version = "5.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/22/e1/6f533da0d4ac89f427dfd9410e39bfc14ae3a23335ecd549d76be4b2a834/django_waffle-5.0.0.tar.gz", hash = "sha256:62f9d00eedf68dafb82657beab56e601bddedc1ea1ccfef91d83df8658708509", size = 37761, upload-time = "2025-06-12T07:38:54.895Z" }
 wheels = [
@@ -849,8 +852,8 @@ name = "djangorestframework"
 version = "3.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/8a/95/5376fe618646fde6899b3cdc85fd959716bb67542e273a76a80d9f326f27/djangorestframework-3.16.1.tar.gz", hash = "sha256:166809528b1aced0a17dc66c24492af18049f2c9420dbd0be29422029cfc3ff7", size = 1089735, upload-time = "2025-08-06T17:50:53.251Z" }
 wheels = [
@@ -895,8 +898,8 @@ name = "drf-jwt"
 version = "1.19.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "djangorestframework" },
     { name = "pyjwt", extra = ["crypto"] },
 ]
@@ -910,8 +913,8 @@ name = "drf-yasg"
 version = "1.21.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "djangorestframework" },
     { name = "inflection" },
     { name = "packaging" },
@@ -930,8 +933,8 @@ version = "1.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-push-notifications" },
     { name = "edx-django-utils" },
     { name = "firebase-admin" },
@@ -950,8 +953,8 @@ name = "edx-api-doc-tools"
 version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "djangorestframework" },
     { name = "drf-yasg" },
     { name = "setuptools" },
@@ -980,8 +983,8 @@ version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "celery" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-model-utils" },
     { name = "jsonfield" },
 ]
@@ -995,8 +998,8 @@ name = "edx-completion"
 version = "4.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-model-utils" },
     { name = "djangorestframework" },
     { name = "edx-drf-extensions" },
@@ -1018,8 +1021,8 @@ version = "8.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-crum" },
     { name = "django-waffle" },
     { name = "psutil" },
@@ -1036,8 +1039,8 @@ name = "edx-drf-extensions"
 version = "10.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-waffle" },
     { name = "djangorestframework" },
     { name = "drf-jwt" },
@@ -1058,8 +1061,8 @@ version = "9.3.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "apache-libcloud" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-config-models" },
     { name = "django-fernet-fields-v2" },
     { name = "django-redis" },
@@ -1086,7 +1089,7 @@ name = "edx-i18n-tools"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" } },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" } },
     { name = "lxml", extra = ["html-clean"], marker = "extra == 'group-20-learning-credentials-dev' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
     { name = "path" },
     { name = "polib" },
@@ -1117,8 +1120,8 @@ version = "5.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "code-annotations" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-crum" },
     { name = "django-waffle" },
     { name = "edx-django-utils" },
@@ -1134,8 +1137,8 @@ version = "3.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "celery" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "edx-django-utils" },
     { name = "edx-toggles" },
     { name = "openedx-events" },
@@ -1667,8 +1670,8 @@ name = "jsonfield"
 version = "3.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fa/e9/537e105246dba81d898853dbbe17eb3edd23d47a35074b99fd4add6f1662/jsonfield-3.2.0.tar.gz", hash = "sha256:ca53871bc3308ae4f4cddc3b4f99ed5c6fc6abb1832fbfb499bc6da566c70e4a", size = 17156, upload-time = "2025-07-04T23:06:24.883Z" }
 wheels = [
@@ -1714,8 +1717,8 @@ version = "0.3.1"
 source = { virtual = "." }
 dependencies = [
     { name = "celery" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-celery-beat" },
     { name = "django-model-utils" },
     { name = "django-object-actions" },
@@ -1740,7 +1743,7 @@ dev = [
     { name = "code-annotations" },
     { name = "diff-cover" },
     { name = "dj-inmemorystorage" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" } },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" } },
     { name = "django-coverage-plugin" },
     { name = "django-types" },
     { name = "doc8" },
@@ -1813,6 +1816,7 @@ dev = [
     { name = "diff-cover" },
     { name = "dj-inmemorystorage" },
     { name = "django", specifier = "<6.0" },
+    { name = "django", specifier = ">=4.2,<5.0" },
     { name = "django-coverage-plugin" },
     { name = "django-types" },
     { name = "doc8" },
@@ -1855,8 +1859,8 @@ name = "learning-paths-plugin"
 version = "0.3.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-model-utils" },
     { name = "django-object-actions" },
     { name = "djangorestframework" },
@@ -2216,8 +2220,8 @@ version = "4.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "celery" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "django-model-utils" },
     { name = "djangorestframework" },
     { name = "edx-celeryutils" },
@@ -2239,8 +2243,8 @@ version = "10.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "edx-ccx-keys" },
     { name = "edx-django-utils" },
     { name = "edx-opaque-keys" },
@@ -2257,8 +2261,8 @@ name = "openedx-filters"
 version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django52')" },
-    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra != 'group-20-learning-credentials-django42' or (extra == 'group-20-learning-credentials-django42' and extra == 'group-20-learning-credentials-django52')" },
+    { name = "django", version = "4.2.27", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-dev' or extra == 'group-20-learning-credentials-django42'" },
+    { name = "django", version = "5.2.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-learning-credentials-django52' or (extra == 'group-20-learning-credentials-dev' and extra == 'group-20-learning-credentials-django42') or (extra != 'group-20-learning-credentials-dev' and extra != 'group-20-learning-credentials-django42')" },
     { name = "edx-opaque-keys" },
     { name = "setuptools" },
 ]
