@@ -160,6 +160,61 @@ class TestCredentialConfiguration:
         eligible_user_ids = self.config.get_eligible_user_ids()
         assert eligible_user_ids == [1, 2, 3]
 
+    @patch('test_models._mock_retrieval_func')
+    def test_custom_options_deep_merge(self, mock_retrieval_func: Mock):
+        """Test that custom_options are deep-merged between CredentialType and CredentialConfiguration."""
+        self.credential_type.custom_options = {
+            'top_level': 'base_value',
+            'nested': {
+                'key1': 'base_key1',
+                'key2': 'base_key2',
+                'key3': {
+                    'sub_key1': 'sub_value1',
+                    'sub_key2': 'sub_value2',
+                },
+                'key4': False,
+                'key5': {
+                    'sub_key1': 'sub_value1',
+                    'sub_key2': 'sub_value2',
+                },
+            },
+        }
+        self.config.custom_options = {
+            'top_level': 'override_value',
+            'nested': {
+                'key2': 'override_key2',
+                'key6': 'new_key5',
+                'key3': {
+                    'sub_key1': 'sub_override_value1',
+                },
+                'key4': {
+                    'sub_key': 'sub_value',
+                },
+                'key5': False,
+            },
+            'new_top': 'new_value',
+        }
+
+        self.config.get_eligible_user_ids()
+
+        assert mock_retrieval_func.call_args[0][1] == {
+            'top_level': 'override_value',  # Overridden.
+            'nested': {
+                'key1': 'base_key1',  # Preserved from type.
+                'key2': 'override_key2',  # Overridden.
+                'key3': {  # Merged into type, with an override.
+                    'sub_key1': 'sub_override_value1',
+                    'sub_key2': 'sub_value2',
+                },
+                'key4': {  # Overridden non-dict with dict.
+                    'sub_key': 'sub_value',
+                },
+                'key5': False,  # Overridden dict with non-dict.
+                'key6': 'new_key5',  # Added from override.
+            },
+            'new_top': 'new_value',  # Added from override.
+        }
+
     @pytest.mark.django_db
     def test_filter_out_user_ids_with_credentials(self):
         """Test the filter_out_user_ids_with_credentials method."""

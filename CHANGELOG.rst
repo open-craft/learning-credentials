@@ -16,6 +16,21 @@ Unreleased
 
 *
 
+0.4.0 - 2026-01-28
+******************
+
+Added
+=====
+
+* New ``text_elements`` format for PDF credential generation with flexible text positioning and placeholder support.
+* Support for custom text elements with ``{name}``, ``{context_name}``, and ``{issue_date}`` placeholders.
+* Global ``defaults`` configuration for font, color, and character spacing.
+
+Modified
+========
+
+* Migrated generator options from flat format (``name_y``, ``context_name_color``, etc.) to structured ``text_elements`` format.
+
 0.3.1 - 2025-12-15
 ******************
 
