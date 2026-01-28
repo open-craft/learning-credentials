@@ -7,7 +7,6 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 from django.http import QueryDict
-from learning_paths.models import LearningPath
 from opaque_keys.edx.keys import CourseKey
 
 # noinspection PyProtectedMember
@@ -20,12 +19,12 @@ from learning_credentials.processors import (
     retrieve_completions_and_grades,
     retrieve_subsection_grades,
 )
-from test_utils.factories import UserFactory
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from django.contrib.auth.models import User
+    from learning_paths.models import LearningPath
 
 
 @patch(
@@ -326,30 +325,6 @@ def test_retrieve_course_completions_and_grades(
     assert result == expected_result
     mock_retrieve_completions.assert_called_once_with(course_id, options)
     mock_retrieve_subsection_grades.assert_called_once_with(course_id, options)
-
-
-@pytest.fixture
-def users() -> list[User]:
-    """Create a list of users."""
-    return UserFactory.create_batch(6)
-
-
-@pytest.fixture
-def learning_path_with_courses(users: list[User]) -> LearningPath:
-    """Create a LearningPath with multiple course steps."""
-    learning_path = LearningPath.objects.create(key='path-v1:test+number+run+group')
-
-    for i in range(3):
-        learning_path.steps.create(course_key=f"course-v1:TestX+Test101+2023_{i}", order=i)
-
-    # Enroll all users except the last one.
-    for i in range(len(users) - 1):
-        learning_path.enrolled_users.add(users[i])
-
-    # Mark the second last user's enrollment as inactive.
-    learning_path.learningpathenrollment_set.filter(user=users[-2]).update(is_active=False)
-
-    return learning_path
 
 
 @pytest.mark.parametrize(
