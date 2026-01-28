@@ -2,20 +2,25 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock, patch
 from uuid import UUID, uuid4
 
 import pytest
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.db import IntegrityError
 from django_celery_beat.models import PeriodicTask
 
-from learning_credentials.exceptions import CredentialGenerationError
+from learning_credentials.exceptions import AssetNotFoundError, CredentialGenerationError
 from learning_credentials.models import (
     Credential,
+    CredentialAsset,
     CredentialConfiguration,
     CredentialType,
+    post_delete_periodic_task,
 )
 from test_utils.factories import UserFactory
 
@@ -352,6 +357,65 @@ class TestCredentialConfiguration:
             download_url='',
         ).exists()
 
+    @pytest.mark.django_db
+    @patch.object(Credential, 'send_email')
+    def test_generate_credentials(self, mock_send_email: Mock):
+        """Test the generate_credentials method that processes all eligible users."""
+        self.credential_type.save()
+        self.config.save()
+
+        # Create users that match the mock retrieval function (returns [1, 2, 3]).
+        user1 = UserFactory.create(id=1)
+        user2 = UserFactory.create(id=2)
+        user3 = UserFactory.create(id=3)
+        user4 = UserFactory.create(id=4)
+
+        self.config.generate_credentials()
+
+        assert Credential.objects.filter(learning_context_key=self.config.learning_context_key).count() == 3
+        assert Credential.objects.filter(user_id=user1.id).exists()
+        assert Credential.objects.filter(user_id=user2.id).exists()
+        assert Credential.objects.filter(user_id=user3.id).exists()
+        assert not Credential.objects.filter(user_id=user4.id).exists()
+        assert mock_send_email.call_count == 3
+
+    @pytest.mark.django_db
+    def test_get_enabled_configurations(self):
+        """Test the get_enabled_configurations classmethod."""
+        self.credential_type.save()
+        self.config.save()
+
+        assert CredentialConfiguration.get_enabled_configurations().count() == 0
+
+        self.config.periodic_task.enabled = True
+        self.config.periodic_task.save()
+
+        enabled_configs = CredentialConfiguration.get_enabled_configurations()
+        assert enabled_configs.count() == 1
+        assert enabled_configs.first() == self.config
+
+    @pytest.mark.django_db
+    def test_save_updates_existing_periodic_task(self):
+        """Test that saving an existing CredentialConfiguration updates the periodic task."""
+        self.credential_type.save()
+        self.config.save()
+
+        original_task_id = self.config.periodic_task.id
+        original_task_name = self.config.periodic_task.name
+        original_modified = self.config.periodic_task.date_changed
+
+        self.config.save()
+        self.config.refresh_from_db()
+
+        assert self.config.periodic_task.id == original_task_id
+        assert self.config.periodic_task.name == original_task_name
+        assert self.config.periodic_task.date_changed > original_modified
+
+    def test_post_delete_signal_handles_missing_periodic_task(self):
+        """Test that the post_delete signal handles the case when periodic_task is None."""
+        mock_instance = Mock(spec=CredentialConfiguration, periodic_task=None)
+        post_delete_periodic_task(sender=CredentialConfiguration, instance=mock_instance)
+
 
 class TestCredential:
     """Tests for the Credential model."""
@@ -389,3 +453,134 @@ class TestCredential:
         }
         with pytest.raises(IntegrityError):
             Credential.objects.create(**credential_2_info)
+
+    @pytest.mark.django_db
+    @patch('learning_credentials.models.settings')
+    @patch('learning_credentials.models.get_learning_context_name')
+    @patch('learning_credentials.models.ace')
+    def test_send_email(self, mock_ace: Mock, mock_get_learning_context_name: Mock, mock_settings: Mock):
+        """Test the send_email method sends an email to the user."""
+        mock_get_learning_context_name.return_value = "Test Course"
+        mock_settings.PLATFORM_NAME = "Test Platform"
+        user = UserFactory.create()
+
+        credential = Credential.objects.create(
+            user_id=user.id,
+            user_full_name=f"{user.first_name} {user.last_name}",
+            learning_context_key='course-v1:TestX+T101+2023',
+            credential_type='Test Type',
+            status=Credential.Status.AVAILABLE,
+            download_url='http://www.test.com/credential.pdf',
+            generation_task_id='12345',
+        )
+
+        credential.send_email()
+
+        mock_ace.send.assert_called_once()
+        message = mock_ace.send.call_args[0][0]
+        assert message.name == "certificate_generated"
+        assert message.context['certificate_link'] == credential.download_url
+        assert message.context['course_name'] == "Test Course"
+
+
+class TestCredentialAsset:
+    """Tests for the CredentialAsset model."""
+
+    @pytest.mark.django_db
+    def test_str_representation(self):
+        """Test the string representation of a CredentialAsset."""
+        asset = CredentialAsset(
+            description="Test Asset",
+            asset_slug="test-asset",
+        )
+        asset.asset = ContentFile(b"test content", name="test.pdf")
+        asset.save()
+
+        assert "test.pdf" in str(asset)
+
+    @pytest.mark.django_db
+    def test_save_creates_asset_correctly(self):
+        """Test that saving a new CredentialAsset handles the asset field correctly."""
+        asset = CredentialAsset(
+            description="Test Asset",
+            asset_slug="test-asset-save",
+        )
+        asset.asset = ContentFile(b"test content", name="test.pdf")
+        asset.save()
+        asset.refresh_from_db()
+
+        assert asset.id is not None
+        assert asset.asset is not None
+        assert "test.pdf" in asset.asset.name
+
+    @pytest.mark.django_db
+    def test_get_asset_by_slug(self):
+        """Test retrieving an asset by its slug."""
+        asset = CredentialAsset(
+            description="Test Asset",
+            asset_slug="test-asset-slug",
+        )
+        asset.asset = ContentFile(b"test content", name="test.pdf")
+        asset.save()
+
+        retrieved_asset = CredentialAsset.get_asset_by_slug("test-asset-slug")
+        assert retrieved_asset.name == asset.asset.name
+
+    @pytest.mark.django_db
+    def test_get_asset_by_slug_not_found(self):
+        """Test that getting a non-existent asset raises AssetNotFoundError."""
+        with pytest.raises(AssetNotFoundError) as exc:
+            CredentialAsset.get_asset_by_slug("non-existent-slug")
+
+        assert "Asset with slug non-existent-slug does not exist" in str(exc.value)
+
+    @pytest.mark.django_db
+    def test_template_assets_path_deletes_existing_file(self):
+        """Test that template_assets_path deletes an existing file before returning the path."""
+        asset = CredentialAsset(description="Test Asset", asset_slug="test-asset-delete")
+        asset.asset = ContentFile(b"original content", name="original.pdf")
+        asset.save()
+
+        target_filename = "test_file.pdf"
+        target_path = (
+            Path(settings.MEDIA_ROOT) / 'learning_credentials_template_assets' / str(asset.id) / target_filename
+        )
+
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"existing content")
+
+        assert target_path.exists()
+
+        # This should delete the existing file.
+        new_path = asset.template_assets_path(target_filename)
+
+        assert not target_path.exists()
+        assert target_filename in new_path
+
+    @pytest.mark.django_db
+    def test_template_assets_path_when_file_does_not_exist(self):
+        """Test that template_assets_path works when no file exists at the target path."""
+        asset = CredentialAsset(description="Test Asset", asset_slug="test-asset-no-file")
+        asset.asset = ContentFile(b"content", name="initial.pdf")
+        asset.save()
+
+        new_path = asset.template_assets_path("nonexistent.pdf")
+
+        assert "nonexistent.pdf" in new_path
+        assert str(asset.id) in new_path
+
+    @pytest.mark.django_db
+    def test_save_updates_existing_asset(self):
+        """Test that saving an existing CredentialAsset updates it correctly (as it has some custom logic)."""
+        asset = CredentialAsset(description="Original Description", asset_slug="test-asset-update")
+        asset.asset = ContentFile(b"original content", name="original.pdf")
+        asset.save()
+
+        original_id = asset.id
+
+        asset.description = "Updated Description"
+        asset.save()
+        asset.refresh_from_db()
+
+        assert asset.id == original_id
+        assert asset.description == "Updated Description"
