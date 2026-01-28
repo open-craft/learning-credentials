@@ -16,6 +16,39 @@ Unreleased
 
 *
 
+0.4.0 - 2026-01-28
+******************
+
+Added
+=====
+
+* New ``text_elements`` format for PDF credential generation with flexible text positioning and placeholder support.
+* Support for custom text elements with ``{name}``, ``{context_name}``, and ``{issue_date}`` placeholders.
+* Global ``defaults`` configuration for font, color, and character spacing.
+
+Modified
+========
+
+* Migrated generator options from flat format (``name_y``, ``context_name_color``, etc.) to structured ``text_elements`` format.
+
+0.3.1 - 2025-12-15
+******************
+
+Added
+=====
+
+* Support for defining the course name using the ``cert_name_long`` field (in Studio's Advanced Settings).
+* Support for specifying individual fonts for PDF text elements.
+* Support for \n in learning context names in PDF certificates.
+* Options for uppercase name and issue date in PDF certificates.
+* Option for defining character spacing for issue date in PDF certificates.
+* Option for defining the horizontal offset of the issue date from its centered position (``issue_date_x``).
+
+Modified
+========
+
+* Replaced ``template_two_lines`` with ``template_multiline``.
+
 0.3.0 - 2025-09-17
 ******************
 

@@ -52,10 +52,13 @@ def get_course_grading_policy(course_id: CourseKey) -> dict:
 def _get_course_name(course_id: CourseKey) -> str:
     """Get the course name from Open edX."""
     # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from openedx.core.djangoapps.content.learning_sequences.api import get_course_outline
+    from openedx.core.djangoapps.content.course_overviews.api import get_course_overview_or_none
 
-    course_outline = get_course_outline(course_id)
-    return (course_outline and course_outline.title) or str(course_id)
+    name = str(course_id)
+    if course_overview := get_course_overview_or_none(course_id):
+        name = course_overview.cert_name_long or course_overview.display_name or name
+
+    return name
 
 
 def _get_learning_path_name(learning_path_key: LearningPathKey) -> str:

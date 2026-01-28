@@ -1,6 +1,6 @@
 [project]
 name = "learning-credentials"
-version = "0.3.0"
+version = "0.4.0"
 description = "A pluggable service for preparing Open edX credentials."
 dynamic = ["readme"]
 requires-python = ">=3.11"
@@ -12,6 +12,7 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.2",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
@@ -74,6 +75,7 @@ dev = [
     { include-group = "ci" },
     { include-group = "quality" },
     { include-group = "doc" },
+    { include-group = "django42" },
     "diff-cover",
     "edx-i18n-tools",
     "ty",  # Type checker.
@@ -103,7 +105,6 @@ plugins = ['django_coverage_plugin']
 [tool.ruff]
 line-length = 120
 exclude = ['migrations', 'docs', 'manage.py']
-target-version = 'py311'
 
 [tool.ruff.lint]
 select = [
@@ -187,6 +188,7 @@ ignore = [
     'RUF018',  # assignment-in-assert
     'ARG002',  # unused-method-argument
     'PLR0913', # too-many-arguments
+    'FBT001',  # flake8-boolean-trap
 ]
 
 [tool.ruff.lint.flake8-annotations]
@@ -208,10 +210,6 @@ quote-style = "preserve"
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    # https://github.com/openedx/completion/pull/259
-    "ignore:'index_together' is deprecated:django.utils.deprecation.RemovedInDjango51Warning",
-    "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
-    "ignore:Deprecated call to `pkg_resources.declare_namespace.*sphinxcontrib:DeprecationWarning",
     "ignore:'cgi' is deprecated:DeprecationWarning",
 ]
 DJANGO_SETTINGS_MODULE = "test_settings"

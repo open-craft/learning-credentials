@@ -7,7 +7,7 @@ import logging
 import uuid
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 import jsonfield
 from django.conf import settings
@@ -31,6 +31,25 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 log = logging.getLogger(__name__)
+
+
+def _deep_merge(base: dict, override: dict) -> dict:
+    """
+    Deep merge two dictionaries.
+
+    Values from `override` take precedence. Nested dictionaries are merged recursively.
+
+    :param base: The base dictionary.
+    :param override: The dictionary with overriding values.
+    :return: A new dictionary with merged values.
+    """
+    result = base.copy()
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
 
 
 class CredentialType(TimeStampedModel):
@@ -128,9 +147,8 @@ class CredentialConfiguration(TimeStampedModel):
         self.periodic_task.args = json.dumps([self.id])
         self.periodic_task.save()
 
-    # Replace the return type with `QuerySet[Self]` after migrating to Python 3.10+.
     @classmethod
-    def get_enabled_configurations(cls) -> QuerySet[CredentialConfiguration]:
+    def get_enabled_configurations(cls) -> QuerySet[Self]:
         """
         Get the list of enabled configurations.
 
@@ -176,7 +194,7 @@ class CredentialConfiguration(TimeStampedModel):
         module = import_module(module_path)
         func = getattr(module, func_name)
 
-        custom_options = {**self.credential_type.custom_options, **self.custom_options}
+        custom_options = _deep_merge(self.credential_type.custom_options, self.custom_options)
         return func(self.learning_context_key, custom_options)
 
     def generate_credential_for_user(self, user_id: int, celery_task_id: int = 0):
@@ -195,7 +213,7 @@ class CredentialConfiguration(TimeStampedModel):
         # Use the name from the profile if it is not empty. Otherwise, use the first and last name.
         # We check if the profile exists because it may not exist in some cases (e.g., when a User is created manually).
         user_full_name = getattr(getattr(user, 'profile', None), 'name', f"{user.first_name} {user.last_name}")
-        custom_options = {**self.credential_type.custom_options, **self.custom_options}
+        custom_options = _deep_merge(self.credential_type.custom_options, self.custom_options)
 
         credential, _ = Credential.objects.update_or_create(
             user_id=user_id,
