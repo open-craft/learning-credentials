@@ -12,6 +12,7 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.2",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
@@ -104,7 +105,6 @@ plugins = ['django_coverage_plugin']
 [tool.ruff]
 line-length = 120
 exclude = ['migrations', 'docs', 'manage.py']
-target-version = 'py311'
 
 [tool.ruff.lint]
 select = [
@@ -210,10 +210,6 @@ quote-style = "preserve"
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    # https://github.com/openedx/completion/pull/259
-    "ignore:'index_together' is deprecated:django.utils.deprecation.RemovedInDjango51Warning",
-    "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
-    "ignore:Deprecated call to `pkg_resources.declare_namespace.*sphinxcontrib:DeprecationWarning",
     "ignore:'cgi' is deprecated:DeprecationWarning",
 ]
 DJANGO_SETTINGS_MODULE = "test_settings"

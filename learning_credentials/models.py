@@ -7,7 +7,7 @@ import logging
 import uuid
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 import jsonfield
 from django.conf import settings
@@ -128,9 +128,8 @@ class CredentialConfiguration(TimeStampedModel):
         self.periodic_task.args = json.dumps([self.id])
         self.periodic_task.save()
 
-    # Replace the return type with `QuerySet[Self]` after migrating to Python 3.10+.
     @classmethod
-    def get_enabled_configurations(cls) -> QuerySet[CredentialConfiguration]:
+    def get_enabled_configurations(cls) -> QuerySet[Self]:
         """
         Get the list of enabled configurations.
 
