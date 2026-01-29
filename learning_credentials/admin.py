@@ -6,9 +6,11 @@ import importlib
 import inspect
 from typing import TYPE_CHECKING
 
+import django
 from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
+from django.db.models import URLField
 from django.urls import reverse
 from django.utils.html import format_html
 from django_object_actions import DjangoObjectActions, action
@@ -228,10 +230,9 @@ class CredentialConfigurationAdmin(DjangoObjectActions, ReverseModelAdmin):
 @admin.register(Credential)
 class CredentialAdmin(DjangoObjectActions, admin.ModelAdmin):  # noqa: D101
     list_display = (
-        'user_id',
+        'user',
         'user_full_name',
-        'learning_context_key',
-        'credential_type',
+        'configuration',
         'status',
         'url',
         'created',
@@ -240,20 +241,26 @@ class CredentialAdmin(DjangoObjectActions, admin.ModelAdmin):  # noqa: D101
     readonly_fields = (
         'uuid',
         'verify_uuid',
-        'user_id',
+        'user',
+        'configuration',
         'created',
         'modified',
         'user_full_name',
-        'learning_context_key',
         'learning_context_name',
-        'credential_type',
         'status',
         'url',
         'legacy_id',
         'generation_task_id',
     )
-    search_fields = ("learning_context_key", "user_id", "user_full_name", "uuid")
-    list_filter = ("learning_context_key", "credential_type", "status")
+    search_fields = (
+        "configuration__learning_context_key",
+        "user_full_name",
+        "user__username",
+        "user__email",
+        "uuid",
+        "verify_uuid",
+    )
+    list_filter = ("configuration__learning_context_key", "configuration__credential_type", "status")
     change_actions = ('reissue_credential',)
 
     def save_model(self, request: HttpRequest, obj: Credential, _form: forms.ModelForm, _change: bool):  # noqa: FBT001
@@ -281,12 +288,23 @@ class CredentialAdmin(DjangoObjectActions, admin.ModelAdmin):  # noqa: D101
     @action(label="Reissue credential", description="Reissue the credential for the user.")
     def reissue_credential(self, request: HttpRequest, obj: Credential):
         """Reissue the credential for the user."""
-        try:
-            new_credential = obj.reissue()
-            admin_url = reverse('admin:learning_credentials_credential_change', args=[new_credential.pk])
-            message = format_html(
-                'The credential has been reissued as <a href="{}">{}</a>.', admin_url, new_credential.uuid
-            )
-            messages.success(request, message)
-        except CredentialConfiguration.DoesNotExist:
-            messages.error(request, "The configuration does not exist.")
+        new_credential = obj.reissue()
+        admin_url = reverse('admin:learning_credentials_credential_change', args=[new_credential.pk])
+        message = format_html(
+            'The credential has been reissued as <a href="{}">{}</a>.', admin_url, new_credential.uuid
+        )
+        messages.success(request, message)
+
+    def has_add_permission(self, _request: HttpRequest) -> bool:
+        """Hide the "Add" button in the admin interface."""
+        return False
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):  # noqa: ANN001, ANN201
+        """
+        Assume HTTPS for scheme-less domains pasted into URLFields.
+
+        This method can be removed when support for Django versions below 5.0 is dropped.
+        """
+        if django.VERSION[0] > 4 and isinstance(db_field, URLField):  # pragma: no cover
+            kwargs["assume_scheme"] = "https"
+        return super().formfield_for_dbfield(db_field, request, **kwargs)

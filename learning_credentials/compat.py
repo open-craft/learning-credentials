@@ -10,7 +10,6 @@ It also simplifies running tests outside edx-platform's environment by stubbing 
 from __future__ import annotations
 
 from contextlib import contextmanager
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 import pytz
@@ -18,7 +17,9 @@ from celery import Celery
 from django.conf import settings
 from learning_paths.models import LearningPath
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
+    from datetime import datetime
+
     from django.contrib.auth.models import User
     from learning_paths.keys import LearningPathKey
     from opaque_keys.edx.keys import CourseKey, LearningContextKey
@@ -33,7 +34,7 @@ def get_celery_app() -> Celery:
     # noinspection PyUnresolvedReferences,PyPackageRequirements
     from lms import CELERY_APP
 
-    return CELERY_APP  # pragma: no cover
+    return CELERY_APP
 
 
 def get_default_storage_url() -> str:
@@ -116,10 +117,15 @@ def get_course_grade(user: User, course_id: CourseKey):  # noqa: ANN201
     return CourseGradeFactory().read(user, course_key=course_id)
 
 
-def get_localized_credential_date() -> str:
-    """Get the localized date from Open edX."""
+def get_localized_credential_date(date: datetime) -> str:
+    """
+    Get the localized date from Open edX.
+
+    :param date: The datetime to format.
+    :returns: The formatted date string.
+    """
     # noinspection PyUnresolvedReferences,PyPackageRequirements
     from common.djangoapps.util.date_utils import strftime_localized
 
-    date = datetime.now(pytz.timezone(settings.TIME_ZONE))
-    return strftime_localized(date, settings.CERTIFICATE_DATE_FORMAT)
+    localized_date = date.astimezone(pytz.timezone(settings.TIME_ZONE))
+    return strftime_localized(localized_date, settings.CERTIFICATE_DATE_FORMAT)

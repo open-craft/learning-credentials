@@ -7,7 +7,6 @@ omit =
     manage.py
     test_settings.py
     */migrations/*
-    *admin.py
     */static/*
     */templates/*
     */tests/*

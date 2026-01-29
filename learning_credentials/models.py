@@ -176,8 +176,7 @@ class CredentialConfiguration(TimeStampedModel):
                  2. Have such a credential with an error status.
         """
         users_ids_with_credentials = Credential.objects.filter(
-            models.Q(learning_context_key=self.learning_context_key),
-            models.Q(credential_type=self.credential_type),
+            models.Q(configuration=self),
             ~(models.Q(status=Credential.Status.ERROR)),
         ).values_list('user_id', flat=True)
 
@@ -221,9 +220,8 @@ class CredentialConfiguration(TimeStampedModel):
         custom_options = _deep_merge(self.credential_type.custom_options, self.custom_options)
 
         credential, _ = Credential.objects.exclude(status=Credential.Status.INVALIDATED).update_or_create(
-            user_id=user_id,
-            learning_context_key=self.learning_context_key,
-            credential_type=self.credential_type.name,
+            user=user,
+            configuration=self,
             defaults={
                 'user_full_name': user_full_name,
                 'learning_context_name': learning_context_name,
@@ -238,13 +236,13 @@ class CredentialConfiguration(TimeStampedModel):
             generation_func = getattr(generation_module, generation_func_name)
 
             # Run the functions. We do not validate them here, as they are validated in the model's clean() method.
-            credential.download_url = generation_func(self.learning_context_key, user, credential.uuid, custom_options)
+            credential.download_url = generation_func(credential, custom_options)
             credential.status = Credential.Status.AVAILABLE
             credential.save()
         except Exception as exc:
             credential.status = Credential.Status.ERROR
             credential.save()
-            msg = f'Failed to generate the {credential.uuid=} for {user_id=} with {self.id=}.'
+            msg = f'Failed to generate the {credential.uuid=} for {user_id=} with {self.id=}.\nReason: {exc}'
             raise CredentialGenerationError(msg) from exc
         else:
             # TODO: In the future, we want to check this before generating the credential.
@@ -297,15 +295,15 @@ class Credential(TimeStampedModel):
         editable=False,
         help_text=_('UUID used for verifying the credential'),
     )
-    user_id = models.IntegerField(help_text=_('ID of the user receiving the credential'))
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        help_text=_('User receiving the credential'),
+    )
     user_full_name = models.CharField(
         max_length=255,
         editable=False,
         help_text=_('User receiving the credential. This field is used for validation purposes.'),
-    )
-    learning_context_key = LearningContextKeyField(
-        max_length=255,
-        help_text=_('ID of a learning context (e.g., a course or a Learning Path) for which the credential was issued'),
     )
     learning_context_name = models.CharField(
         max_length=255,
@@ -315,7 +313,11 @@ class Credential(TimeStampedModel):
             'This field is used for validation purposes.'
         ),
     )
-    credential_type = models.CharField(max_length=255, help_text=_('Type of the credential'))
+    configuration = models.ForeignKey(
+        'CredentialConfiguration',
+        on_delete=models.PROTECT,
+        help_text=_('Associated credential configuration'),
+    )
     status = models.CharField(
         max_length=32,
         choices=Status.choices,
@@ -332,24 +334,36 @@ class Credential(TimeStampedModel):
         max_length=255, blank=True, help_text=_('Reason for invalidating the credential')
     )
 
-    def __str__(self):  # noqa: D105
-        return f"{self.credential_type} for {self.user_full_name} in {self.learning_context_key}"
+    def __str__(self):
+        """Get a string representation of this model's instance."""
+        return (
+            f"{self.configuration.credential_type.name} for {self.user_full_name} "
+            f"in {self.configuration.learning_context_key}"
+        )
 
     def save(self, *args, **kwargs):
-        """If the invalidation reason is set, update the status and timestamp."""
+        """If the invalidation reason is set, trigger the invalidation and update the timestamp."""
         if self.invalidation_reason and self.status != Credential.Status.INVALIDATED:
-            self.status = Credential.Status.INVALIDATED
+            self._invalidate()
         if self.status == Credential.Status.INVALIDATED and not self.invalidated_at:
             self.invalidated_at = timezone.now()
         super().save(*args, **kwargs)
 
+    def _invalidate(self):
+        """Trigger the invalidation process for the credential."""
+        generation_module_name, generation_func_name = self.configuration.credential_type.generation_func.rsplit('.', 1)
+        generation_module = import_module(generation_module_name)
+        generation_func = getattr(generation_module, generation_func_name)
+
+        self.download_url = generation_func(self, {}, invalidate=True)
+        self.status = Credential.Status.INVALIDATED
+
     def send_email(self):
         """Send a credential link to the student."""
-        user = get_user_model().objects.get(id=self.user_id)
         msg = Message(
             name="certificate_generated",
             app_label="learning_credentials",
-            recipient=Recipient(lms_user_id=user.id, email_address=user.email),
+            recipient=Recipient(lms_user_id=self.user.id, email_address=self.user.email),
             language='en',
             context={
                 'certificate_link': self.download_url,
@@ -361,17 +375,12 @@ class Credential(TimeStampedModel):
 
     def reissue(self) -> Self:
         """Invalidate the current credential and create a new one."""
-        config = CredentialConfiguration.objects.get(
-            learning_context_key=self.learning_context_key,
-            credential_type__name=self.credential_type,
-        )
-
         if self.invalidation_reason:
             self.invalidation_reason += '\n'
         self.invalidation_reason += 'Reissued'
         self.save()
 
-        return config.generate_credential_for_user(self.user_id)
+        return self.configuration.generate_credential_for_user(self.user.id)
 
 
 class CredentialAsset(TimeStampedModel):
