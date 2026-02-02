@@ -68,6 +68,3 @@ requirements/private.txt
 # IDEs
 .vscode/
 .idea/
-
-# Local credentials directory
-external_certificates/

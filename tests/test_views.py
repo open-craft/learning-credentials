@@ -11,7 +11,7 @@ from learning_paths.models import LearningPathStep
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from learning_credentials.models import CredentialConfiguration
+from learning_credentials.models import Credential, CredentialConfiguration
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import User
@@ -220,3 +220,44 @@ class TestCredentialConfigurationCheckView:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {'has_credentials': True, 'credential_count': 1}
+
+
+@pytest.mark.django_db
+class TestCredentialMetadataView:
+    """Test the CredentialMetadataView functionality."""
+
+    def _make_request(self, uuid: str) -> Response:
+        """Helper to make GET request to the metadata endpoint."""
+        client = APIClient()
+        url = reverse('learning_credentials_api_v1:credential-metadata', kwargs={'uuid': uuid})
+        return client.get(url)
+
+    def test_credential_metadata(self, credential: Credential):
+        """Test that valid credential metadata is returned."""
+        response = self._make_request(str(credential.verify_uuid))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 5
+        assert response.data['user_full_name'] == "Test User"
+        assert response.data['learning_context_name'] == "Test Course"
+        assert response.data['status'] == Credential.Status.AVAILABLE
+        assert 'created' in response.data
+        assert response.data['invalidation_reason'] == ""
+
+    def test_credential_metadata_not_found(self):
+        """Test that 404 is returned for non-existent credential."""
+        response = self._make_request("00000000-0000-0000-0000-000000000000")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data == {'error': 'Credential not found.'}
+
+    def test_invalidated_credential_metadata(self, user: User, credential: Credential):
+        """Test that invalidated credential returns the invalidation reason."""
+        credential.invalidation_reason = "Reissued due to name change."
+        credential.save()
+
+        response = self._make_request(str(credential.verify_uuid))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == Credential.Status.INVALIDATED
+        assert response.data['invalidation_reason'] == "Reissued due to name change."

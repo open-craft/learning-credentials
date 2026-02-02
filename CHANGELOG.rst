@@ -16,6 +16,15 @@ Unreleased
 
 *
 
+0.5.0 - 2026-01-29
+******************
+
+Added
+=====
+
+* Frontend form and backend API endpoint for verifying credentials.
+* Option to invalidate issued credentials.
+
 0.4.0 - 2026-01-28
 ******************
 
