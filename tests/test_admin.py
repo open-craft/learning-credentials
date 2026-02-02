@@ -357,6 +357,10 @@ class TestCredentialAdmin:
         """Test that the add button is not displayed."""
         assert not admin_credential.has_add_permission(Mock())
 
+    def test_delete_button_not_displayed(self, admin_credential: CredentialAdmin):
+        """Test that the delete button is not displayed."""
+        assert not admin_credential.has_delete_permission(Mock())
+
     def test_url(self, admin_credential: CredentialAdmin, credential: Credential):
         """Test that url() returns a clickable link when download_url is set."""
         result = admin_credential.url(credential)

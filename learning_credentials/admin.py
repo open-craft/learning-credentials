@@ -299,6 +299,10 @@ class CredentialAdmin(DjangoObjectActions, admin.ModelAdmin):  # noqa: D101
         """Hide the "Add" button in the admin interface."""
         return False
 
+    def has_delete_permission(self, _request: HttpRequest, _obj: Credential | None = None) -> bool:
+        """Hide the "Delete" button in the admin interface."""
+        return False
+
     def formfield_for_dbfield(self, db_field, request, **kwargs):  # noqa: ANN001, ANN201
         """
         Assume HTTPS for scheme-less domains pasted into URLFields.
