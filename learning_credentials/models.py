@@ -222,6 +222,9 @@ class CredentialConfiguration(TimeStampedModel):
         credential, _ = Credential.objects.exclude(status=Credential.Status.INVALIDATED).update_or_create(
             user=user,
             configuration=self,
+            # TODO: Remove learning_context_key and credential_type after removing them from the Credential model.
+            learning_context_key=self.learning_context_key,
+            credential_type=self.credential_type.name,
             defaults={
                 'user_full_name': user_full_name,
                 'learning_context_name': learning_context_name,
@@ -305,6 +308,11 @@ class Credential(TimeStampedModel):
         editable=False,
         help_text=_('User receiving the credential. This field is used for validation purposes.'),
     )
+    # TODO: Remove credential_type and learning_context_key. They are redundant because we have the configuration FK.
+    learning_context_key = LearningContextKeyField(
+        max_length=255,
+        help_text=_('ID of a learning context (e.g., a course or a Learning Path) for which the credential was issued'),
+    )
     learning_context_name = models.CharField(
         max_length=255,
         editable=False,
@@ -313,6 +321,7 @@ class Credential(TimeStampedModel):
             'This field is used for validation purposes.'
         ),
     )
+    credential_type = models.CharField(max_length=255, help_text=_('Type of the credential'))
     configuration = models.ForeignKey(
         'CredentialConfiguration',
         on_delete=models.PROTECT,

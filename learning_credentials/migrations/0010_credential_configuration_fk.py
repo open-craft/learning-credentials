@@ -65,15 +65,5 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.PROTECT,
                 to="learning_credentials.credentialconfiguration",
             ),
-        ),
-        # Remove the old credential_type field.
-        migrations.RemoveField(
-            model_name="credential",
-            name="credential_type",
-        ),
-        # Remove the redundant learning_context_key field (now accessible via configuration).
-        migrations.RemoveField(
-            model_name="credential",
-            name="learning_context_key",
-        ),
+        )
     ]
