@@ -31,7 +31,7 @@ from .models import CredentialAsset
 
 log = logging.getLogger(__name__)
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from uuid import UUID
 
     from pypdf import PageObject

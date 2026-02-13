@@ -25,7 +25,7 @@ from learning_credentials.compat import (
     prefetch_course_grades,
 )
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from collections.abc import Callable
 
     from django.contrib.auth.models import User

@@ -27,7 +27,7 @@ from .models import (
 )
 from .tasks import generate_credentials_for_config_task
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from collections.abc import Generator
 
     from django.http import HttpRequest

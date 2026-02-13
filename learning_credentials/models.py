@@ -26,7 +26,7 @@ from opaque_keys.edx.django.models import LearningContextKeyField
 from learning_credentials.compat import get_learning_context_name
 from learning_credentials.exceptions import AssetNotFoundError, CredentialGenerationError
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from django.core.files import File
     from django.db.models import QuerySet
 
