@@ -102,9 +102,18 @@ def learning_path_with_courses(users: list[User]) -> LearningPath:
 # =============================================================================
 
 
-def _mock_retrieval_func(_context_id: LearningContextKey, _options: dict) -> list[int]:
-    """Mock retrieval function that returns a fixed list of user IDs."""
-    return [1, 2, 3]
+def _mock_retrieval_func(
+    _context_id: LearningContextKey, _options: dict, user_id: int | None = None
+) -> dict[int, dict]:
+    """Mock retrieval function that returns detailed eligibility results."""
+    all_results = {
+        1: {'is_eligible': True},
+        2: {'is_eligible': True},
+        3: {'is_eligible': True},
+    }
+    if user_id is not None:
+        return {user_id: all_results[user_id]} if user_id in all_results else {}
+    return all_results
 
 
 def _mock_generation_func(_credential: Credential, _options: dict, *, invalidate: bool = False) -> str:
