@@ -4,10 +4,12 @@ Getting Started
 Developing
 **********
 
-If you have not already done so, create/activate a `virtualenv`_. Unless otherwise stated, assume all terminal code
-below is executed within the virtualenv.
+Prerequisites
+=============
 
-.. _virtualenv: https://virtualenvwrapper.readthedocs.org/en/latest/
+- Python (see the ``requires-python`` field in ``pyproject.toml`` for the supported versions)
+- `mise <https://mise.jdx.dev/>`_ (Modern Infrastructure for Systems Engineering) for task management
+- `uv <https://docs.astral.sh/uv/>`_ for Python package management
 
 One Time Setup
 ==============
@@ -17,31 +19,26 @@ One Time Setup
   git clone git@github.com:open-craft/learning-credentials.git
   cd learning-credentials
 
-  # Set up a virtualenv with the same name as the repo and activate it
-  # Here's how you might do that if you have virtualenvwrapper setup.
-  mkvirtualenv -p python3.11 learning-credentials
-
-  # Install project dependencies
-  make requirements
+  # Install development dependencies (creates a virtual environment automatically)
+  mise run requirements
 
 
 Every time you develop something in this repo
 =============================================
 .. code-block:: bash
 
-  # Activate the virtualenv
-  # Here's how you might do that if you're using virtualenvwrapper.
-  workon learning-credentials
-
   # Grab the latest code
   git checkout main
   git pull
 
   # Install/update the dev requirements
-  make requirements
+  mise run requirements
+
+  # Activate the virtualenv
+  . .venv/bin/activate
 
   # Run the tests and quality checks (to verify the status before you make any changes)
-  make validate
+  mise run validate
 
   # Make a new branch for your changes
   git checkout -b <your_github_username>/<short_description>
@@ -50,10 +47,10 @@ Every time you develop something in this repo
   vim ...
 
   # Run your new tests
-  pytest ./path/to/new/tests
+  mise run test tests/path/to/the/test
 
   # Run all the tests and quality checks
-  make validate
+  mise run test-all
 
   # Commit all your changes
   git commit ...

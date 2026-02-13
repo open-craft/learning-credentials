@@ -206,6 +206,7 @@ Text content supports placeholder substitution using ``{placeholder}`` syntax:
 - ``{name}`` - The learner's display name
 - ``{context_name}`` - The course or Learning Path name
 - ``{issue_date}`` - The localized issue date
+- ``{verify_uuid}`` - The credential's verification UUID (for third-party verification)
 
 To include literal braces, use ``{{`` and ``}}``:
 
