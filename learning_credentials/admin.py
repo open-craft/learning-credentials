@@ -263,14 +263,12 @@ class CredentialAdmin(DjangoObjectActions, admin.ModelAdmin):  # noqa: D101
     list_filter = ("configuration__learning_context_key", "configuration__credential_type", "status")
     change_actions = ('reissue_credential',)
 
-    def save_model(self, request: HttpRequest, obj: Credential, _form: forms.ModelForm, _change: bool):  # noqa: FBT001
-        """Display validation errors as messages in the admin interface."""
-        try:
-            obj.save()
-        except ValidationError as e:
-            self.message_user(request, e.message or "Invalid data", level=messages.ERROR)
-            # Optionally, redirect to the change form with the error message
-            return
+    def get_change_actions(self, request: HttpRequest, object_id: str, form_url: str) -> list[str]:
+        """Hide the reissue button when the credential is already invalidated."""
+        actions = list(super().get_change_actions(request, object_id, form_url))
+        if self.model.objects.filter(pk=object_id, status=Credential.Status.INVALIDATED).exists():
+            actions.remove('reissue_credential')
+        return actions
 
     def get_form(self, request: HttpRequest, obj: Credential | None = None, **kwargs) -> forms.ModelForm:
         """Hide the download_url field."""

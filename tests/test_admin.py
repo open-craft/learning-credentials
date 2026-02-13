@@ -388,41 +388,22 @@ class TestCredentialAdmin:
 
         assert form.base_fields['download_url'].widget.__class__.__name__ == 'HiddenInput'
 
-    def test_save_model_handles_validation_error(
-        self,
-        admin_credential: CredentialAdmin,
-        request_factory: RequestFactory,
-        staff_user: User,
-        credential: Credential,
+    def test_reissue_credential_action_displayed(self, admin_credential: CredentialAdmin, credential: Credential):
+        """Test that reissue_credential action is shown for non-invalidated credentials."""
+        actions = admin_credential.get_change_actions(Mock(), str(credential.pk), '')
+
+        assert 'reissue_credential' in actions
+
+    def test_reissue_credential_action_hidden_for_invalidated(
+        self, admin_credential: CredentialAdmin, credential: Credential
     ):
-        """Test that save_model displays error message on ValidationError."""
-        request = request_factory.post('/admin/')
-        request.user = staff_user
-        request._messages = Mock()
+        """Test that reissue_credential action is hidden for invalidated credentials."""
+        credential.status = Credential.Status.INVALIDATED
+        credential.save()
 
-        change = False
-        with patch.object(Credential, 'save', side_effect=ValidationError('Test error')):
-            admin_credential.save_model(request, credential, Mock(), change)
+        actions = admin_credential.get_change_actions(Mock(), str(credential.pk), '')
 
-        request._messages.add.assert_called()
-        call_args = request._messages.add.call_args
-        assert call_args[0][0] == messages.ERROR
-
-    def test_save_model_success(
-        self,
-        admin_credential: CredentialAdmin,
-        request_factory: RequestFactory,
-        staff_user: User,
-        credential: Credential,
-    ):
-        """Test that save_model successfully saves the credential."""
-        request = request_factory.post('/admin/')
-        request.user = staff_user
-
-        change = False
-        admin_credential.save_model(request, credential, Mock(), change)
-
-        assert credential.pk is not None
+        assert 'reissue_credential' not in actions
 
     @pytest.mark.usefixtures("patch_send_email")
     def test_reissue_credential_action(
