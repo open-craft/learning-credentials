@@ -1713,7 +1713,7 @@ wheels = [
 
 [[package]]
 name = "learning-credentials"
-version = "0.5.0rc4"
+version = "0.5.0"
 source = { virtual = "." }
 dependencies = [
     { name = "celery" },
