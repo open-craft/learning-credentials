@@ -155,14 +155,12 @@ def test_are_grades_passing_criteria_invalid_grade_category():
 @patch('learning_credentials.processors.get_course_enrollments')
 @patch('learning_credentials.processors._get_grades_by_format')
 @patch('learning_credentials.processors._get_category_weights')
-@patch('learning_credentials.processors._are_grades_passing_criteria')
 def test_retrieve_subsection_grades(
-    mock_are_grades_passing_criteria: Mock,
     mock_get_category_weights: Mock,
     mock_get_grades_by_format: Mock,
     mock_get_course_enrollments: Mock,
 ):
-    """Test that the function returns the eligible users."""
+    """Test that the function returns detailed eligibility results for users."""
     course_id = Mock(spec=CourseKey)
     options = {
         'required_grades': {
@@ -173,29 +171,52 @@ def test_retrieve_subsection_grades(
     }
     users = [Mock(name="User1", id=101), Mock(name="User2", id=102)]
     grades = {
-        101: {'homework': 0.5, 'exam': 0.9},
-        102: {'homework': 0.3, 'exam': 0.95},
+        101: {'homework': 80.0, 'exam': 95.0},
+        102: {'homework': 30.0, 'exam': 95.0},
     }
-    required_grades = {'homework': 40.0, 'exam': 90.0, 'total': 80.0}
     weights = {'homework': 0.2, 'exam': 0.7, 'lab': 0.1}
 
     mock_get_course_enrollments.return_value = users
     mock_get_grades_by_format.return_value = grades
     mock_get_category_weights.return_value = weights
-    mock_are_grades_passing_criteria.side_effect = [True, False]
 
     result = retrieve_subsection_grades(course_id, options)
 
-    assert result == [101]
-    mock_get_course_enrollments.assert_called_once_with(course_id)
+    assert 101 in result
+    assert 102 in result
+    assert result[101]['is_eligible'] is True
+    assert result[102]['is_eligible'] is False
+    assert 'current_grades' in result[101]
+    assert 'required_grades' in result[101]
+    mock_get_course_enrollments.assert_called_once_with(course_id, None)
     mock_get_grades_by_format.assert_called_once_with(course_id, users)
     mock_get_category_weights.assert_called_once_with(course_id)
-    mock_are_grades_passing_criteria.assert_has_calls(
-        [
-            call(grades[101], required_grades, weights),
-            call(grades[102], required_grades, weights),
-        ],
-    )
+
+
+@patch('learning_credentials.processors.get_course_enrollments')
+@patch('learning_credentials.processors._get_grades_by_format')
+@patch('learning_credentials.processors._get_category_weights')
+def test_retrieve_subsection_grades_unknown_grade_category(
+    mock_get_category_weights: Mock,
+    mock_get_grades_by_format: Mock,
+    mock_get_course_enrollments: Mock,
+):
+    """Test that grade categories not in the grading policy are skipped in total calculation."""
+    course_id = Mock(spec=CourseKey)
+
+    options = {'required_grades': {'exam': 0.9}}
+    users = [Mock(name="User1", id=101)]
+    grades = {101: {'homework': 80.0, 'lab': 100.0}}
+    weights = {'homework': 0.5, 'exam': 0.5}
+
+    mock_get_course_enrollments.return_value = users
+    mock_get_grades_by_format.return_value = grades
+    mock_get_category_weights.return_value = weights
+
+    result = retrieve_subsection_grades(course_id, options)
+
+    assert result[101]['is_eligible'] is False
+    assert result[101]['current_grades']['total'] == 80.0 * 0.5
 
 
 def test_prepare_request_to_completion_aggregator():
@@ -228,9 +249,11 @@ def test_prepare_request_to_completion_aggregator():
 
 
 @patch('learning_credentials.processors._prepare_request_to_completion_aggregator')
-@patch('learning_credentials.processors.get_user_model')
-def test_retrieve_course_completions(mock_get_user_model: Mock, mock_prepare_request_to_completion_aggregator: Mock):
-    """Test that we retrieve the course completions for all users and return IDs of users who meet the criteria."""
+@patch('learning_credentials.processors.get_course_enrollments')
+def test_retrieve_course_completions(
+    mock_get_course_enrollments: Mock, mock_prepare_request_to_completion_aggregator: Mock
+):
+    """Test that we retrieve the course completions for all users and return detailed results."""
     course_id = Mock(spec=CourseKey)
     options = {'required_completion': 0.8}
     completions_page1 = {
@@ -244,6 +267,7 @@ def test_retrieve_course_completions(mock_get_user_model: Mock, mock_prepare_req
         'results': [
             {'username': 'user2', 'completion': {'percent': 0.7}},
             {'username': 'user3', 'completion': {'percent': 0.8}},
+            {'username': 'unenrolled_user', 'completion': {'percent': 0.95}},
         ],
     }
 
@@ -253,31 +277,18 @@ def test_retrieve_course_completions(mock_get_user_model: Mock, mock_prepare_req
     mock_view_page2.get.return_value.data = completions_page2
     mock_prepare_request_to_completion_aggregator.side_effect = [mock_view_page1, mock_view_page2]
 
-    def filter_side_effect(*_args, **kwargs) -> list[int]:
-        """
-        A mock side effect function for User.objects.filter().
-
-        It allows testing this code without a database access.
-
-        :returns: The user IDs corresponding to the provided usernames.
-        """
-        usernames = kwargs['username__in']
-
-        values_list_mock = Mock()
-        values_list_mock.return_value = [username_id_map[username] for username in usernames]
-        queryset_mock = Mock()
-        queryset_mock.values_list = values_list_mock
-
-        return queryset_mock
-
-    username_id_map = {"user1": 1, "user2": 2, "user3": 3}
-    mock_user_model = Mock()
-    mock_user_model.objects.filter.side_effect = filter_side_effect
-    mock_get_user_model.return_value = mock_user_model
+    # Mock enrolled users to map usernames to IDs.
+    mock_get_course_enrollments.return_value = [
+        Mock(username='user1', id=1),
+        Mock(username='user2', id=2),
+        Mock(username='user3', id=3),
+    ]
 
     result = retrieve_completions(course_id, options)
 
-    assert result == [1, 3]
+    assert result[1] == {'is_eligible': True, 'current_completion': 0.9, 'required_completion': 0.8}
+    assert result[2] == {'is_eligible': False, 'current_completion': 0.7, 'required_completion': 0.8}
+    assert result[3] == {'is_eligible': True, 'current_completion': 0.8, 'required_completion': 0.8}
     mock_prepare_request_to_completion_aggregator.assert_has_calls(
         [
             call(course_id, {'page_size': 1000, 'page': 1}, f'/completion-aggregator/v1/course/{course_id}/'),
@@ -286,16 +297,31 @@ def test_retrieve_course_completions(mock_get_user_model: Mock, mock_prepare_req
     )
     mock_view_page1.get.assert_called_once_with(mock_view_page1.request, str(course_id))
     mock_view_page2.get.assert_called_once_with(mock_view_page2.request, str(course_id))
-    mock_user_model.objects.filter.assert_called_once_with(username__in=['user1', 'user3'])
 
 
 @pytest.mark.parametrize(
-    ('completion_users', 'grades_users', 'expected_result'),
+    ('completion_results', 'grade_results', 'expected_eligible_ids'),
     [
-        ([101, 102, 103], [102, 103, 104], [102, 103]),
-        ([101, 102], [103, 104], []),
-        ([101, 102], [101, 102], [101, 102]),
-        ([101, 102], [], []),
+        (
+            {101: {'is_eligible': True}, 102: {'is_eligible': True}, 103: {'is_eligible': True}},
+            {102: {'is_eligible': True}, 103: {'is_eligible': True}, 104: {'is_eligible': True}},
+            {102, 103},
+        ),
+        (
+            {101: {'is_eligible': True}, 102: {'is_eligible': True}},
+            {103: {'is_eligible': True}, 104: {'is_eligible': True}},
+            set(),
+        ),
+        (
+            {101: {'is_eligible': True}, 102: {'is_eligible': True}},
+            {101: {'is_eligible': True}, 102: {'is_eligible': True}},
+            {101, 102},
+        ),
+        (
+            {101: {'is_eligible': True}, 102: {'is_eligible': True}},
+            {},
+            set(),
+        ),
     ],
     ids=[
         "Some users pass both criteria",
@@ -309,22 +335,24 @@ def test_retrieve_course_completions(mock_get_user_model: Mock, mock_prepare_req
 def test_retrieve_course_completions_and_grades(
     mock_retrieve_completions: Mock,
     mock_retrieve_subsection_grades: Mock,
-    completion_users: list[int],
-    grades_users: list[int],
-    expected_result: list[int],
+    completion_results: dict,
+    grade_results: dict,
+    expected_eligible_ids: set[int],
 ):
-    """Test that the function returns the intersection of eligible users from both criteria."""
+    """Test that the function merges results for users present in both criteria."""
     course_id = Mock(spec=CourseKey)
     options = Mock()
 
-    mock_retrieve_completions.return_value = completion_users
-    mock_retrieve_subsection_grades.return_value = grades_users
+    mock_retrieve_completions.return_value = completion_results
+    mock_retrieve_subsection_grades.return_value = grade_results
 
     result = retrieve_completions_and_grades(course_id, options)
 
-    assert result == expected_result
-    mock_retrieve_completions.assert_called_once_with(course_id, options)
-    mock_retrieve_subsection_grades.assert_called_once_with(course_id, options)
+    assert set(result.keys()) == expected_eligible_ids
+    for uid in expected_eligible_ids:
+        assert result[uid]['is_eligible'] is True
+    mock_retrieve_completions.assert_called_once_with(course_id, options, None)
+    mock_retrieve_subsection_grades.assert_called_once_with(course_id, options, None)
 
 
 @pytest.mark.parametrize(
@@ -338,28 +366,35 @@ def test_retrieve_course_completions_and_grades(
 @pytest.mark.django_db
 def test_retrieve_data_for_learning_path(
     patch_target: str,
-    function_to_test: Callable[[str, dict], list[int]],
+    function_to_test: Callable,
     learning_path_with_courses: LearningPath,
     users: list[User],
 ):
-    """Test retrieving data for a learning path."""
+    """Test retrieving data for a learning path returns eligible users with step breakdown."""
     with patch(patch_target) as mock_retrieve:
         options = {}
-        mock_retrieve.side_effect = (
-            (users[i].id for i in (0, 1, 2, 4, 5)),  # Users passing/completing course0
-            (users[i].id for i in (0, 1, 2, 3, 4, 5)),  # Users passing/completing course1
-            (users[i].id for i in (0, 2, 3, 4, 5)),  # Users passing/completing course2
-        )
+
+        def make_results(user_indices: tuple) -> dict[int, dict]:
+            return {users[i].id: {'is_eligible': True} for i in user_indices}
+
+        mock_retrieve.side_effect = [
+            make_results((0, 1, 2, 4, 5)),  # Users passing/completing course0
+            make_results((0, 1, 2, 3, 4, 5)),  # Users passing/completing course1
+            make_results((0, 2, 3, 4, 5)),  # Users passing/completing course2
+        ]
 
         result = function_to_test(learning_path_with_courses.key, options)
 
-        assert sorted(result) == [users[0].id, users[2].id]
+        # users[0] and users[2] pass all 3 courses AND are enrolled+active in the learning path.
+        # users[4] passes all 3 but enrollment is inactive. users[5] is not enrolled at all.
+        eligible_ids = sorted(uid for uid, details in result.items() if details['is_eligible'])
+        assert eligible_ids == [users[0].id, users[2].id]
 
         assert mock_retrieve.call_count == 3
         course_keys = [step.course_key for step in learning_path_with_courses.steps.all()]
         for i, course_key in enumerate(course_keys):
             call_args = mock_retrieve.call_args_list[i]
-            assert call_args[0] == (course_key, options)
+            assert call_args[0] == (course_key, options, None)
 
 
 @patch("learning_credentials.processors._retrieve_course_completions")
@@ -369,6 +404,7 @@ def test_retrieve_data_for_learning_path_with_step_options(
     learning_path_with_courses: LearningPath,
 ):
     """Test retrieving data for a learning path with step-specific options."""
+    mock_retrieve.return_value = {}
     course_keys = [step.course_key for step in learning_path_with_courses.steps.all()]
 
     options = {
@@ -383,6 +419,6 @@ def test_retrieve_data_for_learning_path_with_step_options(
     retrieve_completions(learning_path_with_courses.key, options)
 
     assert mock_retrieve.call_count == 3
-    assert mock_retrieve.call_args_list[0][0] == (course_keys[0], options["steps"][str(course_keys[0])])
-    assert mock_retrieve.call_args_list[1][0] == (course_keys[1], options["steps"][str(course_keys[1])])
-    assert mock_retrieve.call_args_list[2][0] == (course_keys[2], options)
+    assert mock_retrieve.call_args_list[0][0] == (course_keys[0], options["steps"][str(course_keys[0])], None)
+    assert mock_retrieve.call_args_list[1][0] == (course_keys[1], options["steps"][str(course_keys[1])], None)
+    assert mock_retrieve.call_args_list[2][0] == (course_keys[2], options, None)
