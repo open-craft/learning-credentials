@@ -7,7 +7,7 @@ import logging
 import uuid as uuid_lib
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import jsonfield
 from django.conf import settings
@@ -183,11 +183,12 @@ class CredentialConfiguration(TimeStampedModel):
         filtered_user_ids_set = set(user_ids) - set(users_ids_with_credentials)
         return list(filtered_user_ids_set)
 
-    def get_eligible_user_ids(self) -> list[int]:
+    def _call_retrieval_func(self, user_id: int | None = None) -> dict[int, dict[str, Any]]:
         """
-        Get the list of eligible learners for the given course.
+        Call the retrieval function and return detailed results.
 
-        :return: A list of user IDs.
+        :param user_id: Optional. If provided, only check eligibility for this user.
+        :return: A dict mapping user IDs to their detailed progress information.
         """
         func_path = self.credential_type.retrieval_func
         module_path, func_name = func_path.rsplit('.', 1)
@@ -195,7 +196,27 @@ class CredentialConfiguration(TimeStampedModel):
         func = getattr(module, func_name)
 
         custom_options = _deep_merge(self.credential_type.custom_options, self.custom_options)
-        return func(self.learning_context_key, custom_options)
+        return func(self.learning_context_key, custom_options, user_id=user_id)
+
+    def get_eligible_user_ids(self, user_id: int | None = None) -> list[int]:
+        """
+        Get the list of eligible learners for the given learning context.
+
+        :param user_id: Optional. If provided, only check eligibility for this user.
+        :return: A list of eligible user IDs.
+        """
+        results = self._call_retrieval_func(user_id)
+        return [uid for uid, details in results.items() if details.get('is_eligible', False)]
+
+    def get_user_eligibility_details(self, user_id: int) -> dict[str, Any]:
+        """
+        Get detailed eligibility information for a specific user.
+
+        :param user_id: The user ID to check eligibility for.
+        :return: Dictionary containing eligibility details and progress information.
+        """
+        results = self._call_retrieval_func(user_id)
+        return results.get(user_id, {'is_eligible': False})
 
     def generate_credential_for_user(self, user_id: int, celery_task_id: int = 0) -> Credential:
         """
