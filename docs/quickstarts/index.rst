@@ -10,14 +10,14 @@ See the following diagram for a quick overview of the credential generation proc
 
     digraph G {
         CredentialType [shape=box, color="black", label="Credential Type\n\nProvides reusable configuration by storing the:\n- retrieval function\n- generation function\n- custom options"]
-        CredentialCourseConfiguration [shape=box, color="black", label="Credential Course Configuration\n\n1. Stores option overrides.\n2.Defines custom schedules for credential generations."]
+        CredentialConfiguration [shape=box, color="black", label="Credential Configuration\n\n1. Stores option overrides.\n2. Defines custom schedules for credential generation."]
         RetrievalFunc [shape=ellipse, color="blue", label="retrieval_func\n\nA function that retrieves information\n about learners eligible for the credential.\nIt defines the criteria for getting a credential."]
         GenerationFunc [shape=ellipse, color="blue", label="generation_func\n\nA function that defines how the credential\ngeneration process looks like\n(e.g., it creates a PDF file)."]
         Credential [shape=box, color="black", label="Credential\n\nThe generated credential."]
 
-        CredentialCourseConfiguration -> RetrievalFunc [label="runs"]
+        CredentialConfiguration -> RetrievalFunc [label="runs"]
         RetrievalFunc -> GenerationFunc [label="sends data to"]
-        CredentialType -> CredentialCourseConfiguration [label="provides default options"]
+        CredentialType -> CredentialConfiguration [label="provides default options"]
         GenerationFunc -> Credential [label="generates"]
     }
 
@@ -53,7 +53,7 @@ Preparations
 
          .. image:: ./images/type_achievement.png
 
-4. Configure the credential type for a course in the ``External credentials course
+4. Configure the credential type for a course in the ``External credentials
    configurations`` section. You can also specify the custom options here to override
    the ones specified in the credential type. For example, you can specify a different
    minimum completion for a specific course. Or, you can use a different credential
@@ -69,3 +69,28 @@ Preparations
    section. Here, you can set a custom schedule for generating credentials.
 
     .. image:: ./images/course_schedule.png
+
+
+Invalidation and Reissuing
+==========================
+
+Credentials can be invalidated and reissued through the Django admin:
+
+1. Navigate to ``Django admin -> learning_credentials -> External credentials``.
+2. Select an existing credential.
+3. To reissue a credential (e.g., after a name change), click the **Reissue credential**
+   button. This will:
+
+   - Invalidate the current credential (move the PDF to an archive and mark it as invalidated).
+   - Generate a new credential with updated information.
+   - Link the new credential back to the same configuration.
+
+4. To invalidate a credential without reissuing, set the ``Invalidation reason`` field
+   and save. The credential status will change to ``INVALIDATED`` and the PDF will be
+   archived.
+
+.. note::
+
+   Invalidated credentials are not deleted. The PDF is moved to an archive location
+   and set to private access. The credential metadata remains accessible via the
+   verification API for audit purposes.

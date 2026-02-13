@@ -16,6 +16,32 @@ Unreleased
 
 *
 
+0.5.0 - 2026-01-29
+******************
+
+Added
+=====
+
+* Credential validation and invalidation system with ``INVALIDATED`` status.
+* ``verify_uuid`` field on credentials — a separate UUID used for third-party verification, distinct from the primary key.
+* ``invalidated_at`` timestamp and ``invalidation_reason`` fields on the ``Credential`` model.
+* ``learning_context_name`` cached field on credentials for use in validation display.
+* Public API endpoint (``/api/learning_credentials/v1/metadata/<uuid>/``) to retrieve credential metadata by verification UUID.
+* "Reissue credential" admin action that invalidates the current credential and generates a new one.
+* ``{verify_uuid}`` placeholder support in PDF text elements.
+* Admin test suite (``test_admin.py``) and included it in test coverage.
+
+Changed
+=======
+
+* Replaced ``user_id`` (IntegerField) with a ``user`` ForeignKey to the User model.
+* Added ``configuration`` ForeignKey on ``Credential`` linking to ``CredentialConfiguration``, replacing ``credential_type`` and ``learning_context_key`` lookups.
+* Simplified ``generate_pdf_credential()`` signature to accept a ``Credential`` object instead of separate parameters.
+* Changed the PDF output directory from hardcoded ``external_certificates/`` to the configurable ``LEARNING_CREDENTIALS_OUTPUT_DIR`` setting.
+* Credential issue date on PDFs now uses the credential's creation date instead of the current time.
+* ``get_localized_credential_date()`` now accepts an explicit ``datetime`` parameter.
+* Disabled add and delete permissions for credentials in the Django admin.
+
 0.4.0 - 2026-01-28
 ******************
 

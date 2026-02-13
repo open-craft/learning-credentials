@@ -25,18 +25,18 @@ from reportlab.pdfbase.pdfmetrics import FontError, FontNotFoundError, registerF
 from reportlab.pdfbase.ttfonts import TTFError, TTFont
 from reportlab.pdfgen.canvas import Canvas
 
-from .compat import get_default_storage_url, get_learning_context_name, get_localized_credential_date
+from .compat import get_default_storage_url, get_localized_credential_date
 from .exceptions import AssetNotFoundError
 from .models import CredentialAsset
 
 log = logging.getLogger(__name__)
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from uuid import UUID
 
-    from django.contrib.auth.models import User
-    from opaque_keys.edx.keys import CourseKey
     from pypdf import PageObject
+
+    from learning_credentials.models import Credential
 
 
 def _get_defaults() -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
@@ -79,16 +79,6 @@ def _get_defaults() -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     }
 
     return default_styling, default_text_elements
-
-
-def _get_user_name(user: User) -> str:
-    """
-    Retrieve the user's name.
-
-    :param user: The user to generate the credential for.
-    :return: Username.
-    """
-    return user.profile.name or f"{user.first_name} {user.last_name}"
 
 
 def _register_font(pdf_canvas: Canvas, font_name: str) -> str:
@@ -246,11 +236,12 @@ def _render_text_element(
         pdf_canvas.drawString(line_x, line_y, line, charSpace=char_space)
 
 
-def _write_text_on_template(
+def _write_text_on_template(  # noqa: PLR0913
     template: PageObject,
     username: str,
     context_name: str,
     issue_date: str,
+    verify_uuid: str,
     options: dict[str, Any],
 ) -> Canvas:
     """
@@ -260,6 +251,7 @@ def _write_text_on_template(
     :param username: The name of the user to generate the credential for.
     :param context_name: The name of the learning context.
     :param issue_date: The formatted issue date string.
+    :param verify_uuid: The verification UUID of the credential.
     :param options: A dictionary documented in the ``generate_pdf_credential`` function.
     :returns: A canvas with written data.
     """
@@ -271,6 +263,7 @@ def _write_text_on_template(
         'name': username,
         'context_name': context_name,
         'issue_date': issue_date,
+        'verify_uuid': verify_uuid,
     }
 
     # Build and render text elements.
@@ -282,26 +275,73 @@ def _write_text_on_template(
     return pdf_canvas
 
 
-def _save_credential(credential: PdfWriter, credential_uuid: UUID) -> str:
+def _get_credential_paths(credential_uuid: UUID) -> tuple[str, str]:
+    """
+    Get the original and archive paths for a credential.
+
+    :param credential_uuid: The UUID of the credential.
+    :returns: A tuple of (original_path, archive_path).
+    """
+    output_dir = getattr(settings, 'LEARNING_CREDENTIALS_OUTPUT_DIR', 'learning_credentials')
+    original_path = f'{output_dir}/{credential_uuid}.pdf'
+    archive_path = f'{output_dir}_invalidated/{credential_uuid}.pdf'
+    return original_path, archive_path
+
+
+def _invalidate_credential(credential_uuid: UUID) -> str | None:
+    """
+    Invalidate a PDF credential by moving it to an archive location and restricting access.
+
+    For S3 storage: moves file to archive path and sets ACL to private.
+    For other backends: moves file to archive path.
+
+    :param credential_uuid: The UUID of the credential to invalidate.
+    :returns: The archive path if successful, None if file didn't exist.
+    """
+    original_path, archive_path = _get_credential_paths(credential_uuid)
+
+    if not default_storage.exists(original_path):
+        log.warning("Credential file %s does not exist, nothing to invalidate", original_path)
+        return None
+
+    with default_storage.open(original_path, 'rb') as original_file:
+        default_storage.save(archive_path, ContentFile(original_file.read()))
+    log.info("Archived credential to %s", archive_path)
+
+    default_storage.delete(original_path)
+    log.info("Deleted original credential file %s", original_path)
+
+    # Set ACL to private if S3 (django-storages S3Boto3Storage exposes the bucket).
+    if hasattr(default_storage, 'bucket'):
+        try:
+            obj = default_storage.bucket.Object(archive_path)
+            obj.Acl().put(ACL='private')
+            log.info("Set ACL to private for archived file %s", archive_path)
+        except Exception:
+            log.exception("Failed to set ACL to private for %s", archive_path)
+
+    return archive_path
+
+
+def _save_credential(pdf_writer: PdfWriter, credential_uuid: UUID) -> str:
     """
     Save the final PDF file to BytesIO and upload it using Django default storage.
 
-    :param credential: Pdf credential.
+    :param pdf_writer: The PdfWriter instance containing the credential.
     :param credential_uuid: The UUID of the credential.
     :returns: The URL of the saved credential.
     """
-    # Save the final PDF file to BytesIO.
-    output_path = f'external_certificates/{credential_uuid}.pdf'
+    output_path, _ = _get_credential_paths(credential_uuid)
 
     view_print_extract_permission = (
         UserAccessPermissions.PRINT
         | UserAccessPermissions.PRINT_TO_REPRESENTATION
         | UserAccessPermissions.EXTRACT_TEXT_AND_GRAPHICS
     )
-    credential.encrypt('', secrets.token_hex(32), permissions_flag=view_print_extract_permission, algorithm='AES-256')
+    pdf_writer.encrypt('', secrets.token_hex(32), permissions_flag=view_print_extract_permission, algorithm='AES-256')
 
     pdf_bytes = io.BytesIO()
-    credential.write(pdf_bytes)
+    pdf_writer.write(pdf_bytes)
     pdf_bytes.seek(0)  # Rewind to start.
     # Upload with Django default storage.
     credential_file = ContentFile(pdf_bytes.read())
@@ -320,20 +360,15 @@ def _save_credential(credential: PdfWriter, credential_uuid: UUID) -> str:
     return url
 
 
-def generate_pdf_credential(
-    learning_context_key: CourseKey,
-    user: User,
-    credential_uuid: UUID,
-    options: dict[str, Any],
-) -> str:
+def generate_pdf_credential(credential: Credential, options: dict[str, Any], *, invalidate: bool = False) -> str:
     r"""
-    Generate a PDF credential.
+    Generate or invalidate a PDF credential.
 
-    :param learning_context_key: The ID of the course or learning path the credential is for.
-    :param user: The user to generate the credential for.
-    :param credential_uuid: The UUID of the credential to generate.
+    :param credential: The Credential instance to generate or invalidate the PDF for.
     :param options: The custom options for the credential.
-    :returns: The URL of the saved credential.
+    :param invalidate: If True, invalidates the credential instead of generating it.
+        The PDF is moved to an archive location and made inaccessible.
+    :returns: The URL of the saved credential, or empty string if invalidated.
 
     Options:
 
@@ -372,12 +407,17 @@ def generate_pdf_credential(
         }
       }
     """
-    log.info("Starting credential generation for user %s", user.id)
+    if invalidate:
+        log.info("Invalidating credential %s for user %s", credential.uuid, credential.user.id)
+        _invalidate_credential(credential.uuid)
+        return ''
 
-    username = _get_user_name(user)
+    log.info("Starting credential generation for user %s", credential.user.id)
+
+    username = credential.user_full_name
 
     # Handle multiline context name.
-    context_name = get_learning_context_name(learning_context_key)
+    context_name = credential.learning_context_name
     custom_context_name = ''
     custom_context_text_element = options.get('text_elements', {}).get('context', {})
     if isinstance(custom_context_text_element, dict):
@@ -395,22 +435,24 @@ def generate_pdf_credential(
     template_file = CredentialAsset.get_asset_by_slug(template_path)
 
     # Get the issue date.
-    issue_date = get_localized_credential_date()
+    issue_date = get_localized_credential_date(credential.created)
 
     # Load the PDF template.
     with template_file.open('rb') as template_file:
         template = PdfReader(template_file).pages[0]
 
-        credential = PdfWriter()
+        pdf_writer = PdfWriter()
 
         # Create a new canvas, prepare the page and write the data.
-        pdf_canvas = _write_text_on_template(template, username, context_name, issue_date, options)
+        pdf_canvas = _write_text_on_template(
+            template, username, context_name, issue_date, str(credential.verify_uuid), options
+        )
 
         overlay_pdf = PdfReader(io.BytesIO(pdf_canvas.getpdfdata()))
         template.merge_page(overlay_pdf.pages[0])
-        credential.add_page(template)
+        pdf_writer.add_page(template)
 
-        url = _save_credential(credential, credential_uuid)
+        url = _save_credential(pdf_writer, credential.uuid)
 
         log.info("Credential saved to %s", url)
     return url

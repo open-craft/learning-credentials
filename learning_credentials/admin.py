@@ -6,9 +6,12 @@ import importlib
 import inspect
 from typing import TYPE_CHECKING
 
+import django
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
+from django.db.models import URLField
+from django.urls import reverse
 from django.utils.html import format_html
 from django_object_actions import DjangoObjectActions, action
 from django_reverse_admin import ReverseModelAdmin
@@ -24,7 +27,7 @@ from .models import (
 )
 from .tasks import generate_credentials_for_config_task
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from collections.abc import Generator
 
     from django.http import HttpRequest
@@ -225,31 +228,47 @@ class CredentialConfigurationAdmin(DjangoObjectActions, ReverseModelAdmin):
 
 
 @admin.register(Credential)
-class CredentialAdmin(admin.ModelAdmin):  # noqa: D101
+class CredentialAdmin(DjangoObjectActions, admin.ModelAdmin):  # noqa: D101
     list_display = (
-        'user_id',
+        'user',
         'user_full_name',
-        'learning_context_key',
-        'credential_type',
+        'configuration',
         'status',
         'url',
         'created',
         'modified',
     )
     readonly_fields = (
-        'user_id',
+        'uuid',
+        'verify_uuid',
+        'user',
+        'configuration',
         'created',
         'modified',
         'user_full_name',
-        'learning_context_key',
-        'credential_type',
+        'learning_context_name',
         'status',
         'url',
         'legacy_id',
         'generation_task_id',
     )
-    search_fields = ("learning_context_key", "user_id", "user_full_name")
-    list_filter = ("learning_context_key", "credential_type", "status")
+    search_fields = (
+        "configuration__learning_context_key",
+        "user_full_name",
+        "user__username",
+        "user__email",
+        "uuid",
+        "verify_uuid",
+    )
+    list_filter = ("configuration__learning_context_key", "configuration__credential_type", "status")
+    change_actions = ('reissue_credential',)
+
+    def get_change_actions(self, request: HttpRequest, object_id: str, form_url: str) -> list[str]:
+        """Hide the reissue button when the credential is already invalidated."""
+        actions = list(super().get_change_actions(request, object_id, form_url))
+        if self.model.objects.filter(pk=object_id, status=Credential.Status.INVALIDATED).exists():
+            actions.remove('reissue_credential')
+        return actions
 
     def get_form(self, request: HttpRequest, obj: Credential | None = None, **kwargs) -> forms.ModelForm:
         """Hide the download_url field."""
@@ -263,3 +282,31 @@ class CredentialAdmin(admin.ModelAdmin):  # noqa: D101
         if obj.download_url:
             return format_html("<a href='{url}'>{url}</a>", url=obj.download_url)
         return "-"
+
+    @action(label="Reissue credential", description="Reissue the credential for the user.")
+    def reissue_credential(self, request: HttpRequest, obj: Credential):
+        """Reissue the credential for the user."""
+        new_credential = obj.reissue()
+        admin_url = reverse('admin:learning_credentials_credential_change', args=[new_credential.pk])
+        message = format_html(
+            'The credential has been reissued as <a href="{}">{}</a>.', admin_url, new_credential.uuid
+        )
+        messages.success(request, message)
+
+    def has_add_permission(self, _request: HttpRequest) -> bool:
+        """Hide the "Add" button in the admin interface."""
+        return False
+
+    def has_delete_permission(self, _request: HttpRequest, _obj: Credential | None = None) -> bool:
+        """Hide the "Delete" button in the admin interface."""
+        return False
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):  # noqa: ANN001, ANN201
+        """
+        Assume HTTPS for scheme-less domains pasted into URLFields.
+
+        This method can be removed when support for Django versions below 5.0 is dropped.
+        """
+        if django.VERSION[0] > 4 and isinstance(db_field, URLField):  # pragma: no cover
+            kwargs["assume_scheme"] = "https"
+        return super().formfield_for_dbfield(db_field, request, **kwargs)

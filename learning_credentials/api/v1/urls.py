@@ -2,7 +2,7 @@
 
 from django.urls import path
 
-from .views import CredentialConfigurationCheckView
+from .views import CredentialConfigurationCheckView, CredentialMetadataView
 
 urlpatterns = [
     path(
@@ -10,4 +10,5 @@ urlpatterns = [
         CredentialConfigurationCheckView.as_view(),
         name='credential_configuration_check',
     ),
+    path('metadata/<uuid:uuid>/', CredentialMetadataView.as_view(), name='credential-metadata'),
 ]

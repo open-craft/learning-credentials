@@ -24,7 +24,7 @@ already.
 
 .. _configure the Transifex client: https://docs.transifex.com/client/config/
 
-The `make` targets listed below can be used to push or pull translations.
+The ``mise run`` targets listed below can be used to push or pull translations.
 
 ..  list-table::
     :widths: 25 75
@@ -32,20 +32,19 @@ The `make` targets listed below can be used to push or pull translations.
 
     * - Target
       - Description
-    * - pull_translations
+    * - ``mise run pull_translations``
       - Pull translations from Transifex
-    * - push_translations
+    * - ``mise run push_translations``
       - Push source translation files to Transifex
 
 Fake Translations
 *****************
 As you develop features it may be helpful to know which strings have been marked for translation, and which are not.
-Use the `fake_translations` make target for this purpose. This target will extract all strings marked for translation,
-generate fake translations in the Esperanto (eo) language directory, and compile the translations.
+Use the ``mise run build_dummy_translations`` target for this purpose. This target will extract all strings marked for
+translation, generate fake translations in the Esperanto (eo) language directory, and compile the translations.
 
 You can trigger the display of the translations by setting your browser's language to Esperanto (eo), and navigating to
 a page on the site. Instead of plain English strings, you should see specially-accented English strings that look
 like this:
 
     Thé Fütüré øf Ønlïné Édüçätïøn Ⱡσяєм ι# Før änýøné, änýwhéré, änýtïmé Ⱡσяєм #
-

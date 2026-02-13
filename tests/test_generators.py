@@ -12,7 +12,6 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import DefaultStorage, FileSystemStorage
 from django.test import override_settings
 from inmemorystorage import InMemoryStorage
-from opaque_keys.edx.keys import CourseKey
 from pypdf import PdfWriter
 from pypdf.constants import UserAccessPermissions
 
@@ -20,28 +19,16 @@ from learning_credentials.exceptions import AssetNotFoundError
 from learning_credentials.generators import (
     FontError,
     _build_text_elements,
+    _get_credential_paths,
     _get_defaults,
-    _get_user_name,
     _hex_to_rgb,
+    _invalidate_credential,
     _register_font,
     _save_credential,
     _substitute_placeholders,
     _write_text_on_template,
     generate_pdf_credential,
 )
-
-
-def test_get_user_name():
-    """Test the _get_user_name function."""
-    user = Mock(first_name="First", last_name="Last")
-    user.profile.name = "Profile Name"
-
-    # Test when profile name is available
-    assert _get_user_name(user) == "Profile Name"
-
-    # Test when profile name is not available
-    user.profile.name = None
-    assert _get_user_name(user) == "First Last"
 
 
 @patch("learning_credentials.generators.CredentialAsset.get_asset_by_slug")
@@ -276,7 +263,7 @@ def test_write_text_on_template(mock_canvas_class: Mock, mock_register_font: Moc
     template_mock.mediabox = [0, 0, template_width, template_height]
 
     # Call the function with test parameters and mocks.
-    _write_text_on_template(template_mock, username, context_name, test_date, options)
+    _write_text_on_template(template_mock, username, context_name, test_date, Mock(), options)
 
     # Verify that Canvas was created with the correct pagesize.
     # Use `call_args_list` to ignore the first argument, which is an instance of io.BytesIO.
@@ -329,7 +316,7 @@ def test_write_text_on_template_uppercase(
         },
     }
 
-    _write_text_on_template(template_mock, username, context_name, test_date, options)
+    _write_text_on_template(template_mock, username, context_name, test_date, Mock(), options)
 
     drawn_texts = [call[1][2] for call in mock_canvas_class.return_value.drawString.mock_calls]
     assert expected_text in drawn_texts
@@ -365,7 +352,7 @@ def test_write_text_on_template_char_space(
         },
     }
 
-    _write_text_on_template(template_mock, username, context_name, test_date, options)
+    _write_text_on_template(template_mock, username, context_name, test_date, Mock(), options)
 
     date_calls = [call for call in mock_canvas_class.return_value.drawString.mock_calls if call[1][2] == test_date]
     assert len(date_calls) == 1
@@ -389,7 +376,7 @@ def test_write_text_on_template_custom_element(mock_canvas_class: Mock, mock_reg
         },
     }
 
-    _write_text_on_template(template_mock, username, context_name, test_date, options)
+    _write_text_on_template(template_mock, username, context_name, test_date, Mock(), options)
 
     canvas_object = mock_canvas_class.return_value
 
@@ -414,12 +401,12 @@ def test_write_text_on_template_custom_element(mock_canvas_class: Mock, mock_reg
 )
 @patch('learning_credentials.generators.secrets.token_hex', return_value='test_token')
 @patch('learning_credentials.generators.ContentFile', autospec=True)
-def test_save_credential(mock_contentfile: Mock, mock_token_hex: Mock, storage: DefaultStorage | Mock):
+def test_save_credential(mock_contentfile: Mock, mock_token_hex: Mock, storage: DefaultStorage | Mock, temp_media: str):  # noqa: ARG001
     """Test the _save_credential function."""
     # Mock the credential.
     credential = Mock(spec=PdfWriter)
     credential_uuid = uuid4()
-    output_path = f'external_certificates/{credential_uuid}.pdf'
+    output_path = f'learning_credentials/{credential_uuid}.pdf'
     pdf_bytes = io.BytesIO()
     credential.write.return_value = pdf_bytes
     content_file = ContentFile(pdf_bytes.getvalue())
@@ -509,8 +496,6 @@ def test_save_credential(mock_contentfile: Mock, mock_token_hex: Mock, storage: 
         ),
     ),
 )
-@patch('learning_credentials.generators._get_user_name')
-@patch('learning_credentials.generators.get_learning_context_name')
 @patch('learning_credentials.generators.get_localized_credential_date', return_value='April 1, 2021')
 @patch('learning_credentials.generators.PdfReader')
 @patch('learning_credentials.generators.PdfWriter')
@@ -525,8 +510,6 @@ def test_generate_pdf_credential(
     mock_pdf_writer: Mock,
     mock_pdf_reader: Mock,
     mock_get_date: Mock,
-    mock_get_learning_context_name: Mock,
-    mock_get_user_name: Mock,
     mock_get_asset_by_slug: Mock,
     context_name: str,
     options: dict[str, str],
@@ -534,38 +517,185 @@ def test_generate_pdf_credential(
     expected_context_name: str,
 ):
     """Test the generate_pdf_credential function."""
-    course_id = CourseKey.from_string('course-v1:edX+DemoX+Demo_Course')
-    user = Mock()
-    mock_get_learning_context_name.return_value = context_name
+    verify_uuid = uuid4()
+    credential = Mock(
+        user_full_name='Test User',
+        learning_context_name=context_name,
+        verify_uuid=verify_uuid,
+    )
 
-    result = generate_pdf_credential(course_id, user, Mock(), options)
+    result = generate_pdf_credential(credential, options)
 
     assert result == 'credential_url'
     mock_get_asset_by_slug.assert_called_with(expected_template_slug)
-    mock_get_user_name.assert_called_once_with(user)
-    mock_get_learning_context_name.assert_called_once_with(course_id)
     assert mock_pdf_reader.call_count == 2
     mock_pdf_writer.assert_called_once_with()
 
     mock_write_text_on_template.assert_called_once()
     _, args, _kwargs = mock_write_text_on_template.mock_calls[0]
+    assert args[1] == 'Test User'
     assert args[2] == expected_context_name
     assert args[3] == mock_get_date.return_value
-    assert args[4] == options
+    assert args[4] == str(verify_uuid)
+    assert args[5] == options
 
     mock_save_credential.assert_called_once()
 
 
-@patch('learning_credentials.generators.get_learning_context_name')
-@patch('learning_credentials.generators._get_user_name')
-def test_generate_pdf_credential_no_template(mock_get_user_name: Mock, mock_get_learning_context_name: Mock):
+def test_generate_pdf_credential_no_template():
     """Test that generate_pdf_credential raises ValueError when no template is specified."""
-    course_id = CourseKey.from_string('course-v1:edX+DemoX+Demo_Course')
-    user = Mock()
+    credential = Mock(learning_context_name='Test Course')
     options = {}  # No template specified.
 
     with pytest.raises(ValueError, match=r"Template path must be specified in options."):
-        generate_pdf_credential(course_id, user, Mock(), options)
+        generate_pdf_credential(credential, options)
 
-    mock_get_user_name.assert_called_once_with(user)
-    mock_get_learning_context_name.assert_called_once_with(course_id)
+
+@patch('learning_credentials.generators._invalidate_credential')
+def test_generate_pdf_credential_invalidate(mock_invalidate: Mock):
+    """Test that generate_pdf_credential calls _invalidate_credential when invalidate=True."""
+    credential_uuid = uuid4()
+    credential = Mock(uuid=credential_uuid, user=Mock(id=1))
+
+    result = generate_pdf_credential(credential, {}, invalidate=True)
+
+    assert result == ''
+    mock_invalidate.assert_called_once_with(credential_uuid)
+
+
+def test_get_credential_paths():
+    """Test that _get_credential_paths returns correct paths."""
+    credential_uuid = uuid4()
+
+    original_path, archive_path = _get_credential_paths(credential_uuid)
+
+    assert original_path == f'learning_credentials/{credential_uuid}.pdf'
+    assert archive_path == f'learning_credentials_invalidated/{credential_uuid}.pdf'
+
+
+@override_settings(LEARNING_CREDENTIALS_OUTPUT_DIR='custom_dir')
+def test_get_credential_paths_custom_dir():
+    """Test that _get_credential_paths respects custom output directory."""
+    credential_uuid = uuid4()
+
+    original_path, archive_path = _get_credential_paths(credential_uuid)
+
+    assert original_path == f'custom_dir/{credential_uuid}.pdf'
+    assert archive_path == f'custom_dir_invalidated/{credential_uuid}.pdf'
+
+
+@pytest.mark.parametrize(
+    "storage",
+    [
+        (InMemoryStorage()),  # Test a real storage, without mocking.
+        (Mock(spec=FileSystemStorage, exists=Mock(return_value=True), open=Mock(), save=Mock(), delete=Mock())),
+    ],
+)
+def test_invalidate_credential(storage: DefaultStorage | Mock, temp_media: str):  # noqa: ARG001
+    """Test the _invalidate_credential function."""
+    credential_uuid = uuid4()
+    original_path = f'learning_credentials/{credential_uuid}.pdf'
+    archive_path = f'learning_credentials_invalidated/{credential_uuid}.pdf'
+    pdf_content = b'test pdf content'
+
+    # For InMemoryStorage, we need to create the file first.
+    if isinstance(storage, InMemoryStorage):
+        storage.save(original_path, ContentFile(pdf_content))
+
+    # For mocked storage, set up the open mock to return the content.
+    if isinstance(storage, Mock):
+        mock_file = Mock()
+        mock_file.read.return_value = pdf_content
+        mock_file.__enter__ = Mock(return_value=mock_file)
+        mock_file.__exit__ = Mock(return_value=None)
+        storage.open.return_value = mock_file
+
+    with patch('learning_credentials.generators.default_storage', storage):
+        result = _invalidate_credential(credential_uuid)
+
+    assert result == archive_path
+
+    if isinstance(storage, Mock):
+        storage.exists.assert_called_once_with(original_path)
+        storage.open.assert_called_once_with(original_path, 'rb')
+        storage.delete.assert_called_once_with(original_path)
+
+        save_call_args = storage.save.call_args
+        assert save_call_args[0][0] == archive_path
+
+
+def test_invalidate_credential_file_not_exists():
+    """Test that _invalidate_credential returns None when file doesn't exist."""
+    credential_uuid = uuid4()
+    storage = Mock(spec=FileSystemStorage, exists=Mock(return_value=False))
+
+    with patch('learning_credentials.generators.default_storage', storage):
+        result = _invalidate_credential(credential_uuid)
+
+    assert result is None
+    storage.exists.assert_called_once()
+    storage.open.assert_not_called()
+    storage.delete.assert_not_called()
+
+
+def test_invalidate_credential_sets_acl_on_s3():
+    """Test that _invalidate_credential sets ACL to private on S3 storage."""
+    credential_uuid = uuid4()
+    archive_path = f'learning_credentials_invalidated/{credential_uuid}.pdf'
+    pdf_content = b'test pdf content'
+
+    # Create a mock S3 storage with bucket attribute.
+    mock_acl = Mock()
+    mock_object = Mock(Acl=Mock(return_value=mock_acl))
+    mock_bucket = Mock(Object=Mock(return_value=mock_object))
+
+    mock_file = Mock()
+    mock_file.read.return_value = pdf_content
+    mock_file.__enter__ = Mock(return_value=mock_file)
+    mock_file.__exit__ = Mock(return_value=None)
+
+    storage = Mock(
+        exists=Mock(return_value=True),
+        open=Mock(return_value=mock_file),
+        save=Mock(),
+        delete=Mock(),
+        bucket=mock_bucket,
+    )
+
+    with patch('learning_credentials.generators.default_storage', storage):
+        result = _invalidate_credential(credential_uuid)
+
+    assert result == archive_path
+    mock_bucket.Object.assert_called_once_with(archive_path)
+    mock_acl.put.assert_called_once_with(ACL='private')
+
+
+def test_invalidate_credential_s3_acl_failure_continues():
+    """Test that _invalidate_credential continues even if setting ACL fails."""
+    credential_uuid = uuid4()
+    original_path = f'learning_credentials/{credential_uuid}.pdf'
+    archive_path = f'learning_credentials_invalidated/{credential_uuid}.pdf'
+    pdf_content = b'test pdf content'
+
+    mock_acl = Mock(put=Mock(side_effect=Exception("ACL error")))
+    mock_object = Mock(Acl=Mock(return_value=mock_acl))
+    mock_bucket = Mock(Object=Mock(return_value=mock_object))
+
+    mock_file = Mock()
+    mock_file.read.return_value = pdf_content
+    mock_file.__enter__ = Mock(return_value=mock_file)
+    mock_file.__exit__ = Mock(return_value=None)
+
+    storage = Mock(
+        exists=Mock(return_value=True),
+        open=Mock(return_value=mock_file),
+        save=Mock(),
+        delete=Mock(),
+        bucket=mock_bucket,
+    )
+
+    with patch('learning_credentials.generators.default_storage', storage):
+        result = _invalidate_credential(credential_uuid)
+
+    assert result == archive_path
+    storage.delete.assert_called_once_with(original_path)
