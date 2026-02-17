@@ -19,6 +19,25 @@ if TYPE_CHECKING:
     from rest_framework.views import APIView
 
 
+class IsAdminOrSelf(BasePermission):
+    """
+    Permission to allow only admins or the user themselves to access the API.
+
+    Non-staff users cannot pass a ``username`` that is not their own.
+    """
+
+    def has_permission(self, request: "Request", view: "APIView") -> bool:  # noqa: ARG002
+        """Check if the user is admin or accessing their own data."""
+        if request.user.is_staff:
+            return True
+
+        username = request.query_params.get("username") if request.method == "GET" else request.data.get("username")
+
+        if username:
+            return request.user.username == username
+        return True
+
+
 class CanAccessLearningContext(BasePermission):
     """Permission to allow access to learning context if the user is enrolled."""
 
