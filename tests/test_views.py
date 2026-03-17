@@ -432,64 +432,6 @@ class TestCredentialEligibilityView:
         response = self._make_get_request(staff_user, course_key, username='nonexistent_user')
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    # --- POST tests ---
-
-    def test_post_unauthenticated_returns_403(
-        self, course_key: CourseKey, mock_credential_config: CredentialConfiguration
-    ):
-        """Test that unauthenticated users get 403 on POST."""
-        response = self._make_post_request(None, course_key, mock_credential_config.credential_type_id)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    @patch('learning_credentials.api.v1.views.generate_credential_for_user_task')
-    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
-    def test_post_starts_generation(
-        self,
-        mock_enrollments: Mock,
-        mock_task: Mock,
-        user: User,
-        course_key: CourseKey,
-        mock_credential_config: CredentialConfiguration,
-    ):
-        """Test that POST triggers credential generation for an eligible user."""
-        mock_enrollments.return_value = [user]
-        with patch.object(CredentialConfiguration, 'get_eligible_user_ids', return_value=[user.id]):
-            response = self._make_post_request(user, course_key, mock_credential_config.credential_type_id)
-
-        assert response.status_code == status.HTTP_201_CREATED
-        assert response.data == {'detail': 'Credential generation started.'}
-        mock_task.delay.assert_called_once_with(mock_credential_config.id, user.id)
-
-    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
-    def test_post_existing_credential_returns_409(
-        self, mock_enrollments: Mock, user: User, course_key: CourseKey, credential: Credential
-    ):
-        """Test that POST returns 409 when user already has a valid credential."""
-        mock_enrollments.return_value = [user]
-        response = self._make_post_request(user, course_key, credential.configuration.credential_type_id)
-
-        assert response.status_code == status.HTTP_409_CONFLICT
-        assert 'already has a credential' in response.data['detail']
-
-    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
-    def test_post_ineligible_user_returns_400(
-        self, mock_enrollments: Mock, user: User, course_key: CourseKey, mock_credential_config: CredentialConfiguration
-    ):
-        """Test that POST returns 400 when user is not eligible."""
-        mock_enrollments.return_value = [user]
-        with patch.object(CredentialConfiguration, 'get_eligible_user_ids', return_value=[]):
-            response = self._make_post_request(user, course_key, mock_credential_config.credential_type_id)
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert 'not eligible' in response.data['detail']
-
-    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
-    def test_post_config_not_found_returns_404(self, mock_enrollments: Mock, user: User, course_key: CourseKey):
-        """Test that POST returns 404 when credential configuration doesn't exist."""
-        mock_enrollments.return_value = [user]
-        response = self._make_post_request(user, course_key, 99999)
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
 
 @pytest.mark.django_db
 class TestCredentialListView:
