@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class CredentialConfigurationCheckView(APIView):
     """API view to check if any credentials are configured for a specific learning context."""
 
-    permission_classes = (IsAuthenticated, IsAdminOrSelf, CanAccessLearningContext)
+    permission_classes = (IsAuthenticated, CanAccessLearningContext)
 
     @apidocs.schema(
         parameters=[
