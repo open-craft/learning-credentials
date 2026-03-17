@@ -329,6 +329,38 @@ class TestCredentialEligibilityView:
         assert 'existing_credential' not in cred
         assert 'existing_credential_url' not in cred
 
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_get_filters_by_retrieval_func(
+        self,
+        mock_enrollments: Mock,
+        user: User,
+        course_key: CourseKey,
+        mock_credential_config: CredentialConfiguration,
+        completion_config: CredentialConfiguration,
+    ):
+        """Test that the retrieval_func query parameter filters configurations."""
+        mock_enrollments.return_value = [user]
+        with patch.object(CredentialConfiguration, 'get_user_eligibility_details', return_value={'is_eligible': False}):
+            response = self._make_get_request(
+                user, course_key, retrieval_func=mock_credential_config.credential_type.retrieval_func
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        credentials = response.data['credentials']
+        assert len(credentials) == 1
+        assert credentials[0]['credential_type_id'] == mock_credential_config.credential_type.pk
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_get_filter_by_retrieval_func_no_match(
+        self, mock_enrollments: Mock, user: User, course_key: CourseKey, mock_credential_config: CredentialConfiguration
+    ):
+        """Test that filtering by a non-matching retrieval_func returns no credentials."""
+        mock_enrollments.return_value = [user]
+        response = self._make_get_request(user, course_key, retrieval_func='nonexistent.module.func')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {'context_key': str(course_key), 'credentials': []}
+
     @pytest.mark.usefixtures('mock_credential_config')
     @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
     def test_get_strips_empty_dicts(self, mock_enrollments: Mock, user: User, course_key: CourseKey):

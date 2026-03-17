@@ -198,6 +198,14 @@ class CredentialEligibilityView(APIView):
                     "or learning path key (path-v1:OpenedX+DemoX+DemoPath+Demo)"
                 ),
             ),
+            apidocs.string_parameter(
+                "retrieval_func",
+                ParameterLocation.QUERY,
+                description=(
+                    "Filter by credential type retrieval function "
+                    "(e.g. learning_credentials.processors.retrieve_subsection_grades)."
+                ),
+            ),
         ],
         responses={
             200: CredentialEligibilityResponseSerializer,
@@ -220,6 +228,8 @@ class CredentialEligibilityView(APIView):
         **Query Parameters**
 
         - ``username`` (staff only): View eligibility for a specific user.
+        - ``retrieval_func``: Filter by credential type retrieval function
+          (e.g. ``learning_credentials.processors.retrieve_subsection_grades``).
 
         **Example Request**
 
@@ -249,6 +259,10 @@ class CredentialEligibilityView(APIView):
         configurations = CredentialConfiguration.objects.filter(
             learning_context_key=learning_context_key
         ).select_related('credential_type')
+
+        retrieval_func = request.query_params.get('retrieval_func')
+        if retrieval_func:
+            configurations = configurations.filter(credential_type__retrieval_func=retrieval_func)
 
         eligibility_data = [self._get_eligibility_data(user, config) for config in configurations]
 
