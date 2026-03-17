@@ -13,15 +13,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from learning_credentials.models import Credential, CredentialConfiguration
-from learning_credentials.tasks import generate_credential_for_user_task
 
 from .permissions import CanAccessLearningContext, IsAdminOrSelf
-from .serializers import (
-    CredentialEligibilityResponseSerializer,
-    CredentialListResponseSerializer,
-    CredentialModelSerializer,
-    CredentialSerializer,
-)
+from .serializers import CredentialEligibilityResponseSerializer, CredentialSerializer
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
@@ -274,83 +268,3 @@ class CredentialEligibilityView(APIView):
         serializer = CredentialEligibilityResponseSerializer(data=response_data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
-
-
-class CredentialListView(APIView):
-    """
-    API view to list user credentials.
-
-    Staff users can view credentials for any user via the ``username`` parameter.
-    Non-staff users can only view their own credentials.
-    Optionally filter by ``learning_context_key``.
-    """
-
-    def get_permissions(self) -> list:
-        """Return permissions, adding context access check only when filtering by learning context."""
-        permission_classes = [IsAuthenticated, IsAdminOrSelf]
-
-        if self.request.query_params.get('learning_context_key'):
-            permission_classes.append(CanAccessLearningContext)
-
-        return [permission() for permission in permission_classes]
-
-    @apidocs.schema(
-        parameters=[
-            apidocs.string_parameter(
-                "learning_context_key",
-                ParameterLocation.QUERY,
-                description="Optional learning context to filter credentials.",
-            ),
-            apidocs.string_parameter(
-                "username",
-                ParameterLocation.QUERY,
-                description="Username to view credentials for (staff only).",
-            ),
-        ],
-        responses={
-            200: CredentialListResponseSerializer,
-            403: "User is not authenticated or lacks permission.",
-            404: "Specified user not found or learning context not accessible.",
-        },
-    )
-    def get(self, request: "Request") -> Response:
-        """
-        Retrieve a list of credentials for the authenticated user or a specified user.
-
-        **Query Parameters**
-
-        - ``username`` (staff only): View credentials for a specific user.
-        - ``learning_context_key`` (optional): Filter credentials by learning context.
-
-        **Example Request**
-
-        ``GET /api/learning_credentials/v1/credentials/``
-
-        **Example Response**
-
-        .. code-block:: json
-
-            {
-              "credentials": [
-                {
-                  "credential_id": "123e4567-e89b-12d3-a456-426614174000",
-                  "credential_type": "Certificate of Achievement",
-                  "context_key": "course-v1:OpenedX+DemoX+DemoCourse",
-                  "status": "available",
-                  "created_date": "2024-08-20T10:30:00Z",
-                  "download_url": "https://example.com/credentials/123e4567.pdf"
-                }
-              ]
-            }
-        """
-        learning_context_key = request.query_params.get('learning_context_key')
-        username = request.query_params.get('username')
-        user = get_object_or_404(User, username=username) if username else request.user
-
-        credentials_queryset = Credential.objects.filter(user_id=user.pk)
-
-        if learning_context_key:
-            credentials_queryset = credentials_queryset.filter(learning_context_key=learning_context_key)
-
-        credentials_data = CredentialModelSerializer(credentials_queryset, many=True).data
-        return Response({'credentials': credentials_data})

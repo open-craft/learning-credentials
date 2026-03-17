@@ -2,12 +2,7 @@
 
 from django.urls import path
 
-from .views import (
-    CredentialConfigurationCheckView,
-    CredentialEligibilityView,
-    CredentialListView,
-    CredentialMetadataView,
-)
+from .views import CredentialConfigurationCheckView, CredentialEligibilityView, CredentialMetadataView
 
 urlpatterns = [
     path(
@@ -26,5 +21,4 @@ urlpatterns = [
         CredentialEligibilityView.as_view(),
         name='credential-generation',
     ),
-    path('credentials/', CredentialListView.as_view(), name='credential-list'),
 ]

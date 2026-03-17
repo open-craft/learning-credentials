@@ -1,6 +1,6 @@
 """API serializers for learning credentials."""
 
-from typing import Any, ClassVar
+from typing import Any
 
 from rest_framework import serializers
 
@@ -15,30 +15,6 @@ class CredentialSerializer(serializers.ModelSerializer):
 
         model = Credential
         fields = ('user_full_name', 'created', 'learning_context_name', 'status', 'invalidation_reason')
-
-
-class CredentialModelSerializer(serializers.ModelSerializer):
-    """Serializer for Credential instances returned to authenticated users."""
-
-    credential_id = serializers.UUIDField(source='uuid', read_only=True)
-    credential_type = serializers.CharField(read_only=True)
-    context_key = serializers.CharField(source='learning_context_key', read_only=True)
-    created_date = serializers.DateTimeField(source='created', read_only=True)
-    download_url = serializers.URLField(read_only=True)
-
-    class Meta:
-        """Serializer metadata."""
-
-        model = Credential
-        fields: ClassVar[list[str]] = [
-            'credential_id',
-            'credential_type',
-            'context_key',
-            'status',
-            'created_date',
-            'download_url',
-        ]
-        read_only_fields: ClassVar[list[str]] = fields
 
 
 class CredentialEligibilitySerializer(serializers.Serializer):
@@ -70,9 +46,3 @@ class CredentialEligibilityResponseSerializer(serializers.Serializer):
 
     context_key = serializers.CharField()
     credentials = CredentialEligibilitySerializer(many=True)
-
-
-class CredentialListResponseSerializer(serializers.Serializer):
-    """Serializer for credential list response."""
-
-    credentials = CredentialModelSerializer(many=True)
