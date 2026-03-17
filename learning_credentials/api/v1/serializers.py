@@ -46,6 +46,7 @@ class CredentialEligibilitySerializer(serializers.Serializer):
 
     credential_type_id = serializers.IntegerField()
     name = serializers.CharField()
+    is_generation_enabled = serializers.BooleanField()
     is_eligible = serializers.BooleanField()
     existing_credential = serializers.UUIDField(required=False, allow_null=True)
     existing_credential_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
