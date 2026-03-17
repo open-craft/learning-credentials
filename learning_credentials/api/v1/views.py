@@ -160,18 +160,10 @@ class CredentialEligibilityView(APIView):
 
     permission_classes = (IsAuthenticated, IsAdminOrSelf, CanAccessLearningContext)
 
-    def _get_eligibility_data(self, user: User, config: "CredentialConfiguration") -> dict:
+    def _get_eligibility_data(self, user: User, config: "CredentialConfiguration", credentials: list) -> dict:
         """Calculate eligibility data for a credential configuration."""
         progress_data = config.get_user_eligibility_details(user_id=user.id)
-
-        existing_credential = (
-            Credential.objects.filter(
-                user_id=user.id,
-                configuration=config,
-            )
-            .exclude(status=Credential.Status.ERROR)
-            .first()
-        )
+        existing_credential = next((cred for cred in credentials if cred.configuration_id == config.id), None)
 
         return {
             'credential_type_id': config.credential_type.pk,
@@ -258,7 +250,12 @@ class CredentialEligibilityView(APIView):
         if retrieval_func:
             configurations = configurations.filter(credential_type__retrieval_func=retrieval_func)
 
-        eligibility_data = [self._get_eligibility_data(user, config) for config in configurations]
+        # Pre-fetch all credentials for this user and learning context to avoid N+1 queries in the loop below.
+        credentials = Credential.objects.filter(user_id=user.id, configuration__in=configurations).exclude(
+            status__in=[Credential.Status.ERROR, Credential.Status.INVALIDATED]
+        )
+
+        eligibility_data = [self._get_eligibility_data(user, config, credentials) for config in configurations]
 
         response_data = {
             'context_key': learning_context_key,
