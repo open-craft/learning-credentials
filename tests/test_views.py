@@ -266,7 +266,7 @@ class TestCredentialMetadataView:
 
 @pytest.mark.django_db
 class TestCredentialEligibilityView:
-    """Tests for the CredentialEligibilityView (GET eligibility and POST generation)."""
+    """Tests for the CredentialEligibilityView."""
 
     def _make_get_request(
         self, user: User | None, learning_context_key: LearningContextKey, **query_params
@@ -278,22 +278,6 @@ class TestCredentialEligibilityView:
             kwargs={'learning_context_key': str(learning_context_key)},
         )
         return client.get(url, query_params)
-
-    def _make_post_request(
-        self, user: User | None, learning_context_key: LearningContextKey, credential_type_id: int
-    ) -> Response:
-        """Helper to make POST request to the generation endpoint."""
-        client = _get_api_client(user)
-        url = reverse(
-            'learning_credentials_api_v1:credential-generation',
-            kwargs={
-                'learning_context_key': str(learning_context_key),
-                'credential_type_id': credential_type_id,
-            },
-        )
-        return client.post(url)
-
-    # --- GET tests ---
 
     def test_get_unauthenticated_returns_403(self, course_key: CourseKey):
         """Test that unauthenticated users get 403."""
@@ -394,16 +378,13 @@ class TestCredentialEligibilityView:
         assert cred['existing_credential_url'] == credential.download_url
 
     @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
-    def test_get_excludes_error_credentials(
+    def test_get_excludes_error_and_invalidated_credentials(
         self, mock_enrollments: Mock, user: User, course_key: CourseKey, mock_credential_config: CredentialConfiguration
     ):
-        """Test that credentials with ERROR status are not returned as existing."""
+        """Test that credentials with ERROR or INVALIDATED status are not returned as existing."""
         mock_enrollments.return_value = [user]
-        Credential.objects.create(
-            user=user,
-            configuration=mock_credential_config,
-            status=Credential.Status.ERROR,
-        )
+        mock_credential_config.credential_set.create(user=user, status=Credential.Status.ERROR)
+        mock_credential_config.credential_set.create(user=user, status=Credential.Status.INVALIDATED)
         with patch.object(CredentialConfiguration, 'get_user_eligibility_details', return_value={'is_eligible': True}):
             response = self._make_get_request(user, course_key)
 
