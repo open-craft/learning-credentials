@@ -31,9 +31,7 @@ class IsAdminOrSelf(BasePermission):
         if request.user.is_staff:
             return True
 
-        username = request.query_params.get("username") if request.method == "GET" else request.data.get("username")
-
-        if username:
+        if username := request.query_params.get("username"):
             return request.user.username == username
         return True
 
