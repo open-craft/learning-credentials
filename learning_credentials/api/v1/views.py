@@ -1,6 +1,5 @@
 """API views for Learning Credentials."""
 
-import logging
 from typing import TYPE_CHECKING
 
 import edx_api_doc_tools as apidocs
@@ -19,8 +18,6 @@ from .serializers import CredentialEligibilityResponseSerializer, CredentialSeri
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
-
-logger = logging.getLogger(__name__)
 
 
 class CredentialConfigurationCheckView(APIView):
