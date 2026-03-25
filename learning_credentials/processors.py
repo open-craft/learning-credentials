@@ -308,7 +308,7 @@ def _prepare_request_to_completion_aggregator(course_id: CourseKey, query_params
 
     # HACK: Bypass the API permissions.
     staff_user = get_user_model().objects.filter(is_staff=True).first()
-    view._effective_user = staff_user  # noqa: SLF001
+    view.request.user = staff_user
 
     log.debug('Finished preparing the request for retrieving the completion.')
     return view
@@ -324,9 +324,18 @@ def _retrieve_course_completions(
 
     required_completion = options.get('required_completion', 0.9)
 
+    # Map usernames to user IDs via enrolled users.
+    users = get_course_enrollments(course_id, user_id)
+    username_to_id = {user.username: user.id for user in users}
+
     url = f'/completion-aggregator/v1/course/{course_id}/'
     # The API supports up to 10k results per page, but we limit it to 1k to avoid performance issues.
     query_params = {'page_size': 1000, 'page': 1}
+
+    if user_id and user_id in username_to_id.values():
+        # If we are processing a single user, we can directly query their completion to get live data.
+        # This is because the Completion Aggregator API calculates stale completions for single user queries.
+        query_params['username'] = users[0].username
 
     # TODO: Extract the logic of this view into an API. The current approach is very hacky.
     view = _prepare_request_to_completion_aggregator(course_id, query_params.copy(), url)
@@ -336,15 +345,15 @@ def _retrieve_course_completions(
         response = view.get(view.request, str(course_id))
         log.debug(response.data)
         for res in response.data['results']:
-            completions[res['username']] = res['completion']['percent']
+            try:
+                completions[res['username']] = res['completion']['percent']
+            except KeyError:
+                # If we request completion for a single user, the API does not return the username in the response.
+                completions[users[0].username] = res['completion']['percent']
         if not response.data['pagination']['next']:
             break
         query_params['page'] += 1
         view = _prepare_request_to_completion_aggregator(course_id, query_params.copy(), url)
-
-    # Map usernames to user IDs via enrolled users.
-    users = get_course_enrollments(course_id, user_id)
-    username_to_id = {user.username: user.id for user in users}
 
     results: dict[int, dict[str, Any]] = {}
     for username, current_completion in completions.items():

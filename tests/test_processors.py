@@ -238,8 +238,7 @@ def test_prepare_request_to_completion_aggregator():
 
         mock_view_class.assert_called_once()
         assert view.request.course_id == course_id
-        # noinspection PyUnresolvedReferences
-        assert view._effective_user is staff_user
+        assert view.request.user is staff_user
         assert isinstance(view, mock_view_class.return_value.__class__)
 
         # Create a QueryDict from the query_params dictionary.
@@ -297,6 +296,32 @@ def test_retrieve_course_completions(
     )
     mock_view_page1.get.assert_called_once_with(mock_view_page1.request, str(course_id))
     mock_view_page2.get.assert_called_once_with(mock_view_page2.request, str(course_id))
+
+
+@patch('learning_credentials.processors._prepare_request_to_completion_aggregator')
+@patch('learning_credentials.processors.get_course_enrollments')
+def test_retrieve_course_completions_single_user(
+    mock_enrollments: Mock, mock_aggregator_request: Mock, course_key: CourseKey
+):
+    """Test that single-user queries add username to params and handle missing username in response."""
+    options = {'required_completion': 0.8}
+    user = Mock(username='user1', id=1)
+    mock_enrollments.return_value = [user]
+
+    # The Completion Aggregator API omits the username for single-user queries.
+    completions = {'pagination': {'next': None}, 'results': [{'completion': {'percent': 0.95}}]}
+    mock_view = Mock()
+    mock_view.get.return_value.data = completions
+    mock_aggregator_request.return_value = mock_view
+
+    result = retrieve_completions(course_key, options, user_id=user.id)
+
+    assert result[user.id] == {'is_eligible': True, 'current_completion': 0.95, 'required_completion': 0.8}
+    mock_aggregator_request.assert_called_once_with(
+        course_key,
+        {'page_size': 1000, 'page': 1, 'username': user.username},
+        f'/completion-aggregator/v1/course/{course_key}/',
+    )
 
 
 @pytest.mark.parametrize(
