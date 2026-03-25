@@ -16,9 +16,4 @@ urlpatterns = [
         CredentialEligibilityView.as_view(),
         name='credential-eligibility',
     ),
-    path(
-        'eligibility/<str:learning_context_key>/<int:credential_type_id>/',
-        CredentialEligibilityView.as_view(),
-        name='credential-generation',
-    ),
 ]
