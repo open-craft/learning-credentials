@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 import edx_api_doc_tools as apidocs
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from edx_api_doc_tools import ParameterLocation
 from rest_framework import status
@@ -17,6 +17,7 @@ from .permissions import CanAccessLearningContext, IsAdminOrSelf
 from .serializers import CredentialEligibilityResponseSerializer, CredentialSerializer
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import User
     from rest_framework.request import Request
 
 
@@ -157,10 +158,12 @@ class CredentialEligibilityView(APIView):
 
     permission_classes = (IsAuthenticated, IsAdminOrSelf, CanAccessLearningContext)
 
-    def _get_eligibility_data(self, user: User, config: "CredentialConfiguration", credentials: list) -> dict:
+    def _get_eligibility_data(
+        self, user: "User", config: CredentialConfiguration, credentials_by_config_id: dict[int, Credential]
+    ) -> dict:
         """Calculate eligibility data for a credential configuration."""
         progress_data = config.get_user_eligibility_details(user_id=user.id)
-        existing_credential = next((cred for cred in credentials if cred.configuration_id == config.id), None)
+        existing_credential = credentials_by_config_id.get(config.id)
 
         return {
             'credential_type_id': config.credential_type.pk,
@@ -237,11 +240,11 @@ class CredentialEligibilityView(APIView):
             }
         """
         username = request.query_params.get('username')
-        user = get_object_or_404(User, username=username) if username else request.user
+        user = get_object_or_404(get_user_model(), username=username) if username else request.user
 
         configurations = CredentialConfiguration.objects.filter(
             learning_context_key=learning_context_key
-        ).select_related('credential_type')
+        ).select_related('credential_type', 'periodic_task')
 
         retrieval_func = request.query_params.get('retrieval_func')
         if retrieval_func:
@@ -251,8 +254,11 @@ class CredentialEligibilityView(APIView):
         credentials = Credential.objects.filter(user_id=user.id, configuration__in=configurations).exclude(
             status__in=[Credential.Status.ERROR, Credential.Status.INVALIDATED]
         )
+        credentials_by_config_id = {credential.configuration_id: credential for credential in credentials}
 
-        eligibility_data = [self._get_eligibility_data(user, config, credentials) for config in configurations]
+        eligibility_data = [
+            self._get_eligibility_data(user, config, credentials_by_config_id) for config in configurations
+        ]
 
         response_data = {
             'context_key': learning_context_key,
