@@ -177,7 +177,7 @@ class CredentialConfigurationAdmin(DjangoObjectActions, ReverseModelAdmin):
     ]
     list_display = ('learning_context_key', 'credential_type', 'enabled', 'interval')
     search_fields = ('learning_context_key', 'credential_type__name')
-    list_filter = ('learning_context_key', 'credential_type')
+    list_filter = ('learning_context_key', 'credential_type', 'periodic_task__enabled')
 
     def get_inline_instances(
         self,

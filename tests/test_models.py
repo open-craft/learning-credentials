@@ -135,6 +135,18 @@ class TestCredentialConfiguration:
         assert eligible_user_ids == [1, 2, 3]
 
     @pytest.mark.django_db
+    def test_get_user_eligibility_details(self, mock_credential_config: CredentialConfiguration):
+        """Test that get_user_eligibility_details returns details for a known user."""
+        details = mock_credential_config.get_user_eligibility_details(user_id=1)
+        assert details == {'is_eligible': True}
+
+    @pytest.mark.django_db
+    def test_get_user_eligibility_details_fallback(self, mock_credential_config: CredentialConfiguration):
+        """Test that get_user_eligibility_details returns default when user is not in results."""
+        details = mock_credential_config.get_user_eligibility_details(user_id=999)
+        assert details == {'is_eligible': False}
+
+    @pytest.mark.django_db
     @patch('tests.conftest._mock_retrieval_func')
     def test_custom_options_deep_merge(
         self,

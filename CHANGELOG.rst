@@ -16,6 +16,21 @@ Unreleased
 
 *
 
+0.5.1 - 2026-03-17
+******************
+
+Added
+=====
+
+* Credential eligibility check endpoint (``GET /api/learning_credentials/v1/eligibility/<learning_context_key>/``)
+  with detailed progress information.
+
+Changed
+=======
+
+* Processor functions now return ``dict[int, dict[str, Any]]`` with detailed eligibility information instead of ``list[int]`` of eligible user IDs.
+* Processor functions now accept an optional ``user_id`` parameter for single-user eligibility checks.
+
 0.5.0 - 2026-01-29
 ******************
 

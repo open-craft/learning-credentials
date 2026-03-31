@@ -12,6 +12,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from learning_credentials.models import Credential, CredentialConfiguration
+from test_utils.factories import UserFactory
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import User
@@ -261,3 +262,153 @@ class TestCredentialMetadataView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data['status'] == Credential.Status.INVALIDATED
         assert response.data['invalidation_reason'] == "Reissued due to name change."
+
+
+@pytest.mark.django_db
+class TestCredentialEligibilityView:
+    """Tests for the CredentialEligibilityView."""
+
+    def _make_get_request(
+        self, user: User | None, learning_context_key: LearningContextKey, **query_params
+    ) -> Response:
+        """Helper to make GET request to the eligibility endpoint."""
+        client = _get_api_client(user)
+        url = reverse(
+            'learning_credentials_api_v1:credential-eligibility',
+            kwargs={'learning_context_key': str(learning_context_key)},
+        )
+        return client.get(url, query_params)
+
+    def test_get_unauthenticated_returns_403(self, course_key: CourseKey):
+        """Test that unauthenticated users get 403."""
+        response = self._make_get_request(None, course_key)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_get_no_configurations(self, mock_enrollments: Mock, user: User, course_key: CourseKey):
+        """Test that an empty credentials list is returned when no configurations exist."""
+        mock_enrollments.return_value = [user]
+        response = self._make_get_request(user, course_key)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {'context_key': str(course_key), 'credentials': []}
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_get_eligible_user(
+        self, mock_enrollments: Mock, user: User, course_key: CourseKey, mock_credential_config: CredentialConfiguration
+    ):
+        """Test eligibility response for an eligible user with no existing credential."""
+        mock_enrollments.return_value = [user]
+        with patch.object(CredentialConfiguration, 'get_user_eligibility_details', return_value={'is_eligible': True}):
+            response = self._make_get_request(user, course_key)
+
+        assert response.status_code == status.HTTP_200_OK
+        credentials = response.data['credentials']
+        assert len(credentials) == 1
+        cred = credentials[0]
+        assert cred['credential_type_id'] == mock_credential_config.credential_type.pk
+        assert cred['name'] == mock_credential_config.credential_type.name
+        assert cred['is_eligible'] is True
+        # None values should be stripped by serializer's to_representation.
+        assert 'existing_credential' not in cred
+        assert 'existing_credential_url' not in cred
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_get_filters_by_retrieval_func(
+        self,
+        mock_enrollments: Mock,
+        user: User,
+        course_key: CourseKey,
+        mock_credential_config: CredentialConfiguration,
+        completion_config: CredentialConfiguration,
+    ):
+        """Test that the retrieval_func query parameter filters configurations."""
+        mock_enrollments.return_value = [user]
+        with patch.object(CredentialConfiguration, 'get_user_eligibility_details', return_value={'is_eligible': False}):
+            response = self._make_get_request(
+                user, course_key, retrieval_func=mock_credential_config.credential_type.retrieval_func
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        credentials = response.data['credentials']
+        assert len(credentials) == 1
+        assert credentials[0]['credential_type_id'] == mock_credential_config.credential_type.pk
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_get_filter_by_retrieval_func_no_match(
+        self, mock_enrollments: Mock, user: User, course_key: CourseKey, mock_credential_config: CredentialConfiguration
+    ):
+        """Test that filtering by a non-matching retrieval_func returns no credentials."""
+        mock_enrollments.return_value = [user]
+        response = self._make_get_request(user, course_key, retrieval_func='nonexistent.module.func')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {'context_key': str(course_key), 'credentials': []}
+
+    @pytest.mark.usefixtures('mock_credential_config')
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_get_strips_empty_dicts(self, mock_enrollments: Mock, user: User, course_key: CourseKey):
+        """Test that the serializer strips empty dict values from the response."""
+        mock_enrollments.return_value = [user]
+        with patch.object(
+            CredentialConfiguration,
+            'get_user_eligibility_details',
+            return_value={'is_eligible': False, 'current_grades': {}, 'steps': {}},
+        ):
+            response = self._make_get_request(user, course_key)
+
+        assert response.status_code == status.HTTP_200_OK
+        cred = response.data['credentials'][0]
+        assert cred['is_eligible'] is False
+        assert 'current_grades' not in cred
+        assert 'steps' not in cred
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_get_with_existing_credential(
+        self, mock_enrollments: Mock, user: User, course_key: CourseKey, credential: Credential
+    ):
+        """Test that existing credential info is included in the response."""
+        mock_enrollments.return_value = [user]
+        with patch.object(CredentialConfiguration, 'get_user_eligibility_details', return_value={'is_eligible': True}):
+            response = self._make_get_request(user, course_key)
+
+        assert response.status_code == status.HTTP_200_OK
+        cred = response.data['credentials'][0]
+        assert str(cred['existing_credential']) == str(credential.uuid)
+        assert cred['existing_credential_url'] == credential.download_url
+
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_get_excludes_error_and_invalidated_credentials(
+        self, mock_enrollments: Mock, user: User, course_key: CourseKey, mock_credential_config: CredentialConfiguration
+    ):
+        """Test that credentials with ERROR or INVALIDATED status are not returned as existing."""
+        mock_enrollments.return_value = [user]
+        mock_credential_config.credential_set.create(user=user, status=Credential.Status.ERROR)
+        mock_credential_config.credential_set.create(user=user, status=Credential.Status.INVALIDATED)
+        with patch.object(CredentialConfiguration, 'get_user_eligibility_details', return_value={'is_eligible': True}):
+            response = self._make_get_request(user, course_key)
+
+        assert response.status_code == status.HTTP_200_OK
+        cred = response.data['credentials'][0]
+        assert 'existing_credential' not in cred
+
+    @pytest.mark.usefixtures('mock_credential_config')
+    def test_staff_get_for_other_user(self, staff_user: User, user: User, course_key: CourseKey):
+        """Test that staff can view eligibility for another user via username param."""
+        with patch.object(CredentialConfiguration, 'get_user_eligibility_details', return_value={'is_eligible': False}):
+            response = self._make_get_request(staff_user, course_key, username=user.username)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['credentials']) == 1
+
+    def test_non_staff_cannot_get_for_other_user(self, user: User, course_key: CourseKey):
+        """Test that non-staff users cannot view eligibility for another user."""
+        other_user = UserFactory()
+        response = self._make_get_request(user, course_key, username=other_user.username)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.usefixtures('mock_credential_config')
+    def test_get_user_not_found_returns_404(self, staff_user: User, course_key: CourseKey):
+        """Test that 404 is returned when the specified username doesn't exist."""
+        response = self._make_get_request(staff_user, course_key, username='nonexistent_user')
+        assert response.status_code == status.HTTP_404_NOT_FOUND
