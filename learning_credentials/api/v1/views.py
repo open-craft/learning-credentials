@@ -151,7 +151,6 @@ class CredentialEligibilityView(APIView):
     API view for credential eligibility checking and generation.
 
     **GET**: Returns detailed eligibility info for all configured credentials in a learning context.
-    **POST**: Triggers credential generation for an eligible user.
 
     Staff users can operate on behalf of other users via the ``username`` parameter.
     """
@@ -190,6 +189,14 @@ class CredentialEligibilityView(APIView):
                 description=(
                     "Filter by credential type retrieval function "
                     "(e.g. learning_credentials.processors.retrieve_subsection_grades)."
+                ),
+            ),
+            apidocs.string_parameter(
+                "username",
+                ParameterLocation.QUERY,
+                description=(
+                    "Operate on behalf of the specified user. "
+                    "Staff users may specify any username; non-staff users are limited to their own."
                 ),
             ),
         ],

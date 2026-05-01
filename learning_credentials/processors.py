@@ -1,11 +1,11 @@
 """
 This module contains processors for credential criteria.
 
-The functions prefixed with `retrieve_` are automatically detected by the admin page and are used to retrieve the
-IDs of the users that meet the criteria for the credential type.
+The functions prefixed with `retrieve_` are automatically detected by the admin page and are used to compute
+per-user progress for the credential type, following the contract described below.
 
-All processors return ``dict[int, dict[str, Any]]`` — a mapping from user ID to detailed progress info.
-Each user's dict always includes an ``is_eligible`` boolean.
+All processors return ``dict[int, dict[str, Any]]`` — a mapping from user ID to detailed progress info for all
+relevant users, including those who are not eligible. Each user's dict always includes an ``is_eligible`` boolean.
 
 We will move this module to an external repository (a plugin).
 """
@@ -214,7 +214,7 @@ def _retrieve_course_subsection_grades(
     course_id: CourseKey, options: dict[str, Any], user_id: int | None = None
 ) -> dict[int, dict[str, Any]]:
     """Retrieve detailed grade progress for enrolled users in a course."""
-    required_grades: dict[str, int] = options['required_grades']
+    required_grades: dict[str, float] = options['required_grades']
     required_grades = {key.lower(): value * 100 for key, value in required_grades.items()}
 
     users = get_course_enrollments(course_id, user_id)
