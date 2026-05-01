@@ -3,6 +3,8 @@
 from typing import TYPE_CHECKING
 
 import edx_api_doc_tools as apidocs
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from edx_api_doc_tools import ParameterLocation
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -11,10 +13,11 @@ from rest_framework.views import APIView
 
 from learning_credentials.models import Credential, CredentialConfiguration
 
-from .permissions import CanAccessLearningContext
-from .serializers import CredentialSerializer
+from .permissions import CanAccessLearningContext, IsAdminOrSelf
+from .serializers import CredentialEligibilityResponseSerializer, CredentialSerializer
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import User
     from rest_framework.request import Request
 
 
@@ -141,3 +144,134 @@ class CredentialMetadataView(APIView):
 
         serializer = CredentialSerializer(credential)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CredentialEligibilityView(APIView):
+    """
+    API view for credential eligibility checking and generation.
+
+    **GET**: Returns detailed eligibility info for all configured credentials in a learning context.
+
+    Staff users can operate on behalf of other users via the ``username`` parameter.
+    """
+
+    permission_classes = (IsAuthenticated, IsAdminOrSelf, CanAccessLearningContext)
+
+    def _get_eligibility_data(
+        self, user: "User", config: CredentialConfiguration, credentials_by_config_id: dict[int, Credential]
+    ) -> dict:
+        """Calculate eligibility data for a credential configuration."""
+        progress_data = config.get_user_eligibility_details(user_id=user.id)
+        existing_credential = credentials_by_config_id.get(config.id)
+
+        return {
+            'credential_type_id': config.credential_type.pk,
+            'name': config.credential_type.name,
+            'is_generation_enabled': config.periodic_task.enabled,
+            **progress_data,
+            'existing_credential': existing_credential.uuid if existing_credential else None,
+            'existing_credential_url': existing_credential.download_url if existing_credential else None,
+        }
+
+    @apidocs.schema(
+        parameters=[
+            apidocs.string_parameter(
+                "learning_context_key",
+                ParameterLocation.PATH,
+                description=(
+                    "Learning context identifier. Can be a course key (course-v1:OpenedX+DemoX+DemoCourse) "
+                    "or learning path key (path-v1:OpenedX+DemoX+DemoPath+Demo)"
+                ),
+            ),
+            apidocs.string_parameter(
+                "retrieval_func",
+                ParameterLocation.QUERY,
+                description=(
+                    "Filter by credential type retrieval function "
+                    "(e.g. learning_credentials.processors.retrieve_subsection_grades)."
+                ),
+            ),
+            apidocs.string_parameter(
+                "username",
+                ParameterLocation.QUERY,
+                description=(
+                    "Operate on behalf of the specified user. "
+                    "Staff users may specify any username; non-staff users are limited to their own."
+                ),
+            ),
+        ],
+        responses={
+            200: CredentialEligibilityResponseSerializer,
+            400: "Invalid context key format.",
+            403: "User is not authenticated.",
+            404: "Learning context not found or user does not have access.",
+        },
+    )
+    def get(self, request: "Request", learning_context_key: str) -> Response:
+        """
+        Get credential eligibility for a learning context.
+
+        Returns detailed eligibility information for all configured credentials, including:
+
+        - Current grades and requirements for grade-based credentials
+        - Completion percentages for completion-based credentials
+        - Step-by-step progress for learning paths
+        - Existing credential info if already generated
+
+        **Query Parameters**
+
+        - ``username`` (staff only): View eligibility for a specific user.
+        - ``retrieval_func``: Filter by credential type retrieval function
+          (e.g. ``learning_credentials.processors.retrieve_subsection_grades``).
+
+        **Example Request**
+
+        ``GET /api/learning_credentials/v1/eligibility/course-v1:OpenedX+DemoX+DemoCourse/``
+
+        **Example Response**
+
+        .. code-block:: json
+
+            {
+              "context_key": "course-v1:OpenedX+DemoX+DemoCourse",
+              "credentials": [
+                {
+                  "credential_type_id": 1,
+                  "name": "Certificate of Achievement",
+                  "is_eligible": true,
+                  "existing_credential": null,
+                  "current_grades": {"final exam": 86, "total": 82},
+                  "required_grades": {"final exam": 65, "total": 80}
+                }
+              ]
+            }
+        """
+        username = request.query_params.get('username')
+        user = get_object_or_404(get_user_model(), username=username) if username else request.user
+
+        configurations = CredentialConfiguration.objects.filter(
+            learning_context_key=learning_context_key
+        ).select_related('credential_type', 'periodic_task')
+
+        retrieval_func = request.query_params.get('retrieval_func')
+        if retrieval_func:
+            configurations = configurations.filter(credential_type__retrieval_func=retrieval_func)
+
+        # Pre-fetch all credentials for this user and learning context to avoid N+1 queries in the loop below.
+        credentials = Credential.objects.filter(user_id=user.id, configuration__in=configurations).exclude(
+            status__in=[Credential.Status.ERROR, Credential.Status.INVALIDATED]
+        )
+        credentials_by_config_id = {credential.configuration_id: credential for credential in credentials}
+
+        eligibility_data = [
+            self._get_eligibility_data(user, config, credentials_by_config_id) for config in configurations
+        ]
+
+        response_data = {
+            'context_key': learning_context_key,
+            'credentials': eligibility_data,
+        }
+
+        serializer = CredentialEligibilityResponseSerializer(data=response_data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
