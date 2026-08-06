@@ -236,7 +236,7 @@ def _render_text_element(
         pdf_canvas.drawString(line_x, line_y, line, charSpace=char_space)
 
 
-def _write_text_on_template(  # noqa: PLR0913
+def _write_text_on_template(  # noqa: PLR0913,PLR0917
     template: PageObject,
     username: str,
     context_name: str,
