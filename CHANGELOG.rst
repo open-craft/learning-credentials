@@ -16,6 +16,19 @@ Unreleased
 
 *
 
+0.5.2 - 2026-08-11
+******************
+
+Changed
+=======
+
+* The ``CredentialAdmin`` list view is now ordered by the ``created`` timestamp in descending order (most recent first).
+
+Removed
+=======
+
+* ``CredentialAdmin`` and ``CredentialConfigurationAdmin`` list views no longer allow filtering by the ``learning_context_key``.
+
 0.5.1 - 2026-03-17
 ******************
 

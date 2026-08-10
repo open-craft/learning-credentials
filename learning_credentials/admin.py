@@ -177,7 +177,7 @@ class CredentialConfigurationAdmin(DjangoObjectActions, ReverseModelAdmin):
     ]
     list_display = ('learning_context_key', 'credential_type', 'enabled', 'interval')
     search_fields = ('learning_context_key', 'credential_type__name')
-    list_filter = ('learning_context_key', 'credential_type', 'periodic_task__enabled')
+    list_filter = ('credential_type', 'periodic_task__enabled')
 
     def get_inline_instances(
         self,
@@ -260,7 +260,8 @@ class CredentialAdmin(DjangoObjectActions, admin.ModelAdmin):  # noqa: D101
         "uuid",
         "verify_uuid",
     )
-    list_filter = ("configuration__learning_context_key", "configuration__credential_type", "status")
+    list_filter = ("configuration__credential_type", "status")
+    ordering = ('-created',)
     change_actions = ('reissue_credential',)
 
     def get_change_actions(self, request: HttpRequest, object_id: str, form_url: str) -> list[str]:
