@@ -16,6 +16,16 @@ Unreleased
 
 *
 
+0.5.3 - 2026-08-11
+******************
+
+Fixed
+=====
+
+* The ``is_generation_enabled`` field of the credential eligibility endpoint is now based on the ``expires`` field of
+  the periodic task, when it is set. The ``enabled`` flag is updated by Celery Beat (e.g., it disables expired and
+  already executed one-off tasks), so it does not reliably reflect the intended configuration.
+
 0.5.2 - 2026-08-11
 ******************
 
