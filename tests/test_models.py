@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
@@ -10,6 +11,7 @@ from uuid import uuid4
 import pytest
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
+from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
 
 from learning_credentials.exceptions import AssetNotFoundError, CredentialGenerationError
@@ -370,6 +372,34 @@ class TestCredentialConfiguration:
         enabled_configs = CredentialConfiguration.get_enabled_configurations()
         assert enabled_configs.count() == 1
         assert enabled_configs.first() == mock_credential_config
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        ('enabled', 'expires_offset', 'expected'),
+        [
+            # Without `expires`, the `enabled` flag of the periodic task is used.
+            (False, None, False),
+            (True, None, True),
+            # With `expires` set, it takes precedence over the `enabled` flag.
+            (False, timedelta(days=1), True),
+            (True, timedelta(days=-1), False),
+            (False, timedelta(days=-1), False),
+            (True, timedelta(days=1), True),
+        ],
+    )
+    def test_is_generation_enabled(
+        self,
+        mock_credential_config: CredentialConfiguration,
+        enabled: bool,
+        expires_offset: timedelta | None,
+        expected: bool,
+    ):
+        """Test that the `expires` field takes precedence over the `enabled` flag, which Celery Beat updates."""
+        mock_credential_config.periodic_task.enabled = enabled
+        mock_credential_config.periodic_task.expires = timezone.now() + expires_offset if expires_offset else None
+        mock_credential_config.periodic_task.save()
+
+        assert mock_credential_config.is_generation_enabled is expected
 
     @pytest.mark.django_db
     def test_save_updates_existing_periodic_task(self, mock_credential_config: CredentialConfiguration):
