@@ -167,7 +167,7 @@ class CredentialEligibilityView(APIView):
         return {
             'credential_type_id': config.credential_type.pk,
             'name': config.credential_type.name,
-            'is_generation_enabled': config.periodic_task.enabled,
+            'is_generation_enabled': config.is_generation_enabled,
             **progress_data,
             'existing_credential': existing_credential.uuid if existing_credential else None,
             'existing_credential_url': existing_credential.download_url if existing_credential else None,

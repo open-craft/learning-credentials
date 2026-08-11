@@ -148,6 +148,22 @@ class CredentialConfiguration(TimeStampedModel):
         self.periodic_task.args = json.dumps([self.id])
         self.periodic_task.save()
 
+    @property
+    def is_generation_enabled(self) -> bool:
+        """
+        Check whether credential generation is currently enabled for this configuration.
+
+        Celery Beat updates the `enabled` flag of the periodic task on its own (e.g., it disables one-off tasks once
+        they have run, and expired tasks), so it does not reliably reflect the intended configuration. When `expires`
+        is set, it defines the end of the generation window, so it takes precedence.
+
+        :return: True if credential generation is enabled, False otherwise.
+        """
+        if self.periodic_task.expires:
+            return self.periodic_task.expires > timezone.now()
+
+        return self.periodic_task.enabled
+
     @classmethod
     def get_enabled_configurations(cls) -> QuerySet[Self]:
         """

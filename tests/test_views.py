@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from learning_paths.models import LearningPathStep
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -312,6 +314,39 @@ class TestCredentialEligibilityView:
         # None values should be stripped by serializer's to_representation.
         assert 'existing_credential' not in cred
         assert 'existing_credential_url' not in cred
+
+    @pytest.mark.parametrize(
+        ('enabled', 'expires_offset', 'expected'),
+        [
+            (False, None, False),
+            (True, None, True),
+            # Celery Beat disables expired tasks, so `expires` takes precedence over the `enabled` flag.
+            (False, timedelta(days=1), True),
+            (True, timedelta(days=-1), False),
+        ],
+    )
+    @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
+    def test_get_is_generation_enabled(  # noqa: PLR0917
+        self,
+        mock_enrollments: Mock,
+        user: User,
+        course_key: CourseKey,
+        mock_credential_config: CredentialConfiguration,
+        enabled: bool,
+        expires_offset: timedelta | None,
+        expected: bool,
+    ):
+        """Test that the generation status is based on the `expires` field of the periodic task, when it is set."""
+        mock_enrollments.return_value = [user]
+        mock_credential_config.periodic_task.enabled = enabled
+        mock_credential_config.periodic_task.expires = timezone.now() + expires_offset if expires_offset else None
+        mock_credential_config.periodic_task.save()
+
+        with patch.object(CredentialConfiguration, 'get_user_eligibility_details', return_value={'is_eligible': True}):
+            response = self._make_get_request(user, course_key)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['credentials'][0]['is_generation_enabled'] is expected
 
     @patch('learning_credentials.api.v1.permissions.get_course_enrollments')
     def test_get_filters_by_retrieval_func(
