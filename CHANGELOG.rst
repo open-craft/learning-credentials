@@ -16,6 +16,15 @@ Unreleased
 
 *
 
+0.5.4 - 2026-11-10
+******************
+
+Fixed
+=====
+
+* PDF credential generation with ``pypdf>=7.0.0``. The overlay is now merged into the page after it is attached to
+  the ``PdfWriter``, because merging into a page that is not attached to a writer is no longer supported.
+
 0.5.3 - 2026-08-11
 ******************
 
