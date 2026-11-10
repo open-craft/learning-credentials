@@ -451,6 +451,9 @@ def generate_pdf_credential(credential: Credential, options: dict[str, Any], *, 
         overlay_pdf = PdfReader(io.BytesIO(pdf_canvas.getpdfdata()))
         page = pdf_writer.add_page(template)
         page.merge_page(overlay_pdf.pages[0])
+        # Serialize the merged content streams. Otherwise, `pypdf>=7.0.0` encrypts the raw stream data before the
+        # pending operations of the merged overlay are written, which results in an empty overlay stream.
+        page.compress_content_streams()
 
         url = _save_credential(pdf_writer, credential.uuid)
 

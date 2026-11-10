@@ -16,6 +16,15 @@ Unreleased
 
 *
 
+0.5.5 - 2026-11-11
+******************
+
+Fixed
+=====
+
+* Missing text (e.g., name, context, date) in encrypted PDF credentials generated with ``pypdf>=7.0.0``. The merged
+  content streams are now serialized before encryption, so the overlay is no longer saved as an empty stream.
+
 0.5.4 - 2026-11-10
 ******************
 

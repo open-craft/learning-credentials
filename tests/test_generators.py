@@ -12,7 +12,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import DefaultStorage, FileSystemStorage
 from django.test import override_settings
 from inmemorystorage import InMemoryStorage
-from pypdf import PdfWriter
+from pypdf import PdfReader, PdfWriter
 from pypdf.constants import UserAccessPermissions
 
 from learning_credentials.exceptions import AssetNotFoundError
@@ -569,6 +569,45 @@ def test_generate_pdf_credential_merges_overlay_into_template(mock_get_asset_by_
     page_text = pdf_writer.pages[0].extract_text()
     assert 'Test User' in page_text
     assert 'Test Course' in page_text
+
+
+@patch('learning_credentials.generators.CredentialAsset.get_asset_by_slug')
+def test_generate_pdf_credential_saved_file_contains_overlay(mock_get_asset_by_slug: Mock):
+    """
+    Test that the saved (encrypted) PDF contains the overlay text.
+
+    With ``pypdf>=7.0.0``, encryption reads the raw stream data of content streams that were modified during the merge
+    before they are serialized, so the overlay was written as an empty stream.
+    """
+    template_writer = PdfWriter()
+    template_writer.add_blank_page(width=842, height=595)
+    template_buffer = io.BytesIO()
+    template_writer.write(template_buffer)
+    mock_get_asset_by_slug.return_value = ContentFile(template_buffer.getvalue(), name='template.pdf')
+
+    credential = Mock(
+        uuid=uuid4(),
+        user_full_name='Test User',
+        learning_context_name='Test Course',
+        verify_uuid=uuid4(),
+        created=Mock(),
+    )
+
+    storage = InMemoryStorage()
+    with (
+        patch('learning_credentials.generators.default_storage', storage),
+        patch('learning_credentials.generators.get_localized_credential_date', return_value='April 1, 2021'),
+    ):
+        generate_pdf_credential(credential, {'template': 'template'})
+
+    with storage.open(f'learning_credentials/{credential.uuid}.pdf', 'rb') as saved_file:
+        reader = PdfReader(io.BytesIO(saved_file.read()))
+    assert reader.is_encrypted
+    reader.decrypt('')
+    page_text = reader.pages[0].extract_text()
+    assert 'Test User' in page_text
+    assert 'Test Course' in page_text
+    assert 'April 1, 2021' in page_text
 
 
 def test_generate_pdf_credential_no_template():
