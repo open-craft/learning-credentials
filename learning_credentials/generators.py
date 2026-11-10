@@ -449,8 +449,8 @@ def generate_pdf_credential(credential: Credential, options: dict[str, Any], *, 
         )
 
         overlay_pdf = PdfReader(io.BytesIO(pdf_canvas.getpdfdata()))
-        template.merge_page(overlay_pdf.pages[0])
-        pdf_writer.add_page(template)
+        page = pdf_writer.add_page(template)
+        page.merge_page(overlay_pdf.pages[0])
 
         url = _save_credential(pdf_writer, credential.uuid)
 

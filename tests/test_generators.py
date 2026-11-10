@@ -542,6 +542,35 @@ def test_generate_pdf_credential(  # noqa: PLR0917
     mock_save_credential.assert_called_once()
 
 
+@pytest.mark.filterwarnings('error::DeprecationWarning')
+@patch('learning_credentials.generators._save_credential', return_value='credential_url')
+@patch('learning_credentials.generators.CredentialAsset.get_asset_by_slug')
+def test_generate_pdf_credential_merges_overlay_into_template(mock_get_asset_by_slug: Mock, mock_save_credential: Mock):
+    """Test that generate_pdf_credential merges the overlay into the template without using deprecated pypdf APIs."""
+    template_writer = PdfWriter()
+    template_writer.add_blank_page(width=842, height=595)
+    template_buffer = io.BytesIO()
+    template_writer.write(template_buffer)
+    mock_get_asset_by_slug.return_value = ContentFile(template_buffer.getvalue(), name='template.pdf')
+
+    credential = Mock(
+        user_full_name='Test User',
+        learning_context_name='Test Course',
+        verify_uuid=uuid4(),
+        created=Mock(),
+    )
+
+    with patch('learning_credentials.generators.get_localized_credential_date', return_value='April 1, 2021'):
+        result = generate_pdf_credential(credential, {'template': 'template'})
+
+    assert result == 'credential_url'
+    pdf_writer = mock_save_credential.call_args.args[0]
+    assert len(pdf_writer.pages) == 1
+    page_text = pdf_writer.pages[0].extract_text()
+    assert 'Test User' in page_text
+    assert 'Test Course' in page_text
+
+
 def test_generate_pdf_credential_no_template():
     """Test that generate_pdf_credential raises ValueError when no template is specified."""
     credential = Mock(learning_context_name='Test Course')
