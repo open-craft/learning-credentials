@@ -15,13 +15,14 @@ import logging
 import re
 import secrets
 from typing import TYPE_CHECKING, Any
+from urllib.parse import quote
 
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage, default_storage
 from pypdf import PdfReader, PdfWriter
 from pypdf.constants import UserAccessPermissions
-from reportlab.pdfbase.pdfmetrics import FontError, FontNotFoundError, registerFont
+from reportlab.pdfbase.pdfmetrics import FontError, FontNotFoundError, getAscentDescent, registerFont
 from reportlab.pdfbase.ttfonts import TTFError, TTFont
 from reportlab.pdfgen.canvas import Canvas
 
@@ -124,6 +125,46 @@ def _hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
     return tuple(int(hex_color[i : i + 2], 16) / 255 for i in range(0, 6, 2))
 
 
+def _split_into_segments(
+    text: str,
+    placeholders: dict[str, str],
+    links: dict[str, tuple[str, str]] | None = None,
+) -> list[tuple[str, str | None]]:
+    """
+    Substitute placeholders in text using {placeholder} syntax and split it into segments.
+
+    Supports escaping with {{ for literal braces. Substituted values are not scanned for placeholders again.
+
+    :param text: The text containing placeholders.
+    :param placeholders: A dictionary mapping placeholder names to their values.
+    :param links: A dictionary mapping link placeholder names to their (text, url) tuples.
+    :returns: A list of (text, url) segments. The url is None for segments that are not links.
+    """
+    links = links or {}
+    segments = []
+    position = 0
+
+    # Use negative lookbehind to skip escaped braces ({{).
+    # Match {word} but not {{word}.
+    for match in re.finditer(r'(?<!\{)\{(\w+)\}', text):
+        key = match.group(1)
+        if key in placeholders:
+            value, url = placeholders[key], None
+        elif key in links:
+            value, url = links[key]
+        else:
+            # Unknown placeholders are kept as-is.
+            continue
+
+        # Replace escaped braces with literal braces.
+        segments.append((text[position : match.start()].replace('{{', '{').replace('}}', '}'), None))
+        segments.append((value, url))
+        position = match.end()
+
+    segments.append((text[position:].replace('{{', '{').replace('}}', '}'), None))
+    return [(segment_text, url) for segment_text, url in segments if segment_text]
+
+
 def _substitute_placeholders(text: str, placeholders: dict[str, str]) -> str:
     """
     Substitute placeholders in text using {placeholder} syntax.
@@ -134,17 +175,36 @@ def _substitute_placeholders(text: str, placeholders: dict[str, str]) -> str:
     :param placeholders: A dictionary mapping placeholder names to their values.
     :returns: The text with placeholders substituted.
     """
+    return ''.join(segment_text for segment_text, _ in _split_into_segments(text, placeholders))
 
-    def replace_placeholder(match: re.Match) -> str:
-        key = match.group(1)
-        return placeholders.get(key, match.group(0))
 
-    # Use negative lookbehind to skip escaped braces ({{).
-    # Match {word} but not {{word}.
-    text = re.sub(r'(?<!\{)\{(\w+)\}', replace_placeholder, text)
+def _build_links(options: dict[str, Any], placeholders: dict[str, str]) -> dict[str, tuple[str, str]]:
+    """
+    Build the link placeholders from the `links` option.
 
-    # Replace escaped braces with literal braces.
-    return text.replace('{{', '{').replace('}}', '}')
+    Placeholders in the link URL are URL-encoded. If the link text is not specified, the URL is displayed.
+
+    :param options: The options dictionary from the credential configuration.
+    :param placeholders: A dictionary mapping placeholder names to their values.
+    :returns: A dictionary mapping link placeholder names to their (text, url) tuples.
+    """
+    encoded_placeholders = {key: quote(value, safe='') for key, value in placeholders.items()}
+    links = {}
+
+    for key, config in options.get('links', {}).items():
+        if key in placeholders:
+            log.warning("Link '%s' conflicts with a built-in placeholder and will be ignored", key)
+            continue
+
+        if not isinstance(config, dict) or not config.get('url'):
+            log.warning("Link '%s' must be a dict with a 'url' property", key)
+            continue
+
+        url = _substitute_placeholders(config['url'], encoded_placeholders)
+        text = _substitute_placeholders(config['text'], placeholders) if 'text' in config else url
+        links[key] = (text, url)
+
+    return links
 
 
 def _build_text_elements(options: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -203,6 +263,7 @@ def _render_text_element(
     template_width: float,
     config: dict[str, Any],
     placeholders: dict[str, str],
+    links: dict[str, tuple[str, str]],
 ) -> None:
     """
     Render a single text element on the canvas.
@@ -211,11 +272,19 @@ def _render_text_element(
     :param template_width: Width of the template for centering.
     :param config: The element configuration (all defaults are already merged).
     :param placeholders: Dictionary of placeholder values.
+    :param links: Dictionary of link placeholder (text, url) tuples.
     """
-    text = _substitute_placeholders(config['text'], placeholders)
+    # Split the segments into lines (for context element).
+    lines: list[list[tuple[str, str | None]]] = [[]]
+    for segment_text, url in _split_into_segments(config['text'], placeholders, links):
+        if config['uppercase']:
+            segment_text = segment_text.upper()  # noqa: PLW2901
 
-    if config['uppercase']:
-        text = text.upper()
+        for line_number, line_part in enumerate(segment_text.split('\n')):
+            if line_number:
+                lines.append([])
+            if line_part:
+                lines[-1].append((line_part, url))
 
     font_name = _register_font(pdf_canvas, config['font'])
     pdf_canvas.setFont(font_name, config['size'])
@@ -226,14 +295,23 @@ def _render_text_element(
     char_space = config['char_space']
     line_height = config['line_height']
     size = config['size']
+    ascent, descent = getAscentDescent(font_name, size)
 
-    # Handle multiline text (for context element).
-    lines = text.split('\n')
-    for line_number, line in enumerate(lines):
+    for line_number, line_segments in enumerate(lines):
+        line = ''.join(segment_text for segment_text, _ in line_segments)
         text_width = pdf_canvas.stringWidth(line) + (char_space * max(0, len(line) - 1))
         line_x = (template_width - text_width) / 2
         line_y = y - (line_number * size * line_height)
         pdf_canvas.drawString(line_x, line_y, line, charSpace=char_space)
+
+        # Add clickable areas over the link segments.
+        offset = 0
+        for segment_text, url in line_segments:
+            if url:
+                x1 = line_x + pdf_canvas.stringWidth(line[:offset]) + (char_space * offset)
+                x2 = x1 + pdf_canvas.stringWidth(segment_text) + (char_space * (len(segment_text) - 1))
+                pdf_canvas.linkURL(url, (x1, line_y + descent, x2, line_y + ascent), relative=0, thickness=0)
+            offset += len(segment_text)
 
 
 def _write_text_on_template(  # noqa: PLR0913,PLR0917
@@ -267,10 +345,11 @@ def _write_text_on_template(  # noqa: PLR0913,PLR0917
     }
 
     # Build and render text elements.
+    links = _build_links(options, placeholders)
     elements = _build_text_elements(options)
 
     for config in elements.values():
-        _render_text_element(pdf_canvas, template_width, config, placeholders)
+        _render_text_element(pdf_canvas, template_width, config, placeholders, links)
 
     return pdf_canvas
 
@@ -375,17 +454,22 @@ def generate_pdf_credential(credential: Credential, options: dict[str, Any], *, 
       - template (required): The slug of the PDF template asset.
       - template_multiline: Alternative template for multiline context names (when using '\n').
       - defaults: Global defaults for all text elements.
+
           - font: Font name (asset slug). Default: Helvetica.
           - color: Hex color code. Default: #000.
           - size: Font size in points. Default: 12.
           - char_space: Character spacing. Default: 0.
           - uppercase: Convert text to uppercase. Default: false.
           - line_height: Line height multiplier for multiline text. Default: 1.1.
-      - text_elements: Configuration for text elements. Standard elements (name, context, date) have
-          defaults and render automatically. Set to false to hide.
-          Custom elements require 'text' and 'y' properties.
-          Element properties:
-          - text: Text content with {placeholder} substitution. Available: {name}, {context_name}, {issue_date}.
+      - links: Clickable links. Each key becomes a {placeholder} that can be used in text elements.
+
+          - url (required): Link target with {placeholder} substitution. Values are URL-encoded.
+          - text: Displayed text with {placeholder} substitution. Default: the URL.
+      - text_elements: Configuration for text elements. Standard elements (name, context, date) render
+        automatically (set to false to hide). Custom elements require 'text' and 'y' properties.
+
+          - text: Text content with {placeholder} substitution. Available: {name}, {context_name}, {issue_date},
+            {verify_uuid}, and the keys of the links option.
           - y: Vertical position (PDF coordinates from bottom).
           - size: Font size (inherited from defaults.size).
           - font: Font name (inherited from defaults.font).
@@ -399,11 +483,15 @@ def generate_pdf_credential(credential: Credential, options: dict[str, Any], *, 
       {
         "template": "certificate-template",
         "defaults": {"font": "CustomFont", "color": "#333"},
+        "links": {
+          "verify_url": {"text": "https://example.com/verify", "url": "https://example.com/verify?id={verify_uuid}"}
+        },
         "text_elements": {
           "name": {"y": 300, "uppercase": true},
           "context": {"text": "Custom Course Name"},
           "date": false,
-          "award_line": {"text": "Awarded on {issue_date}", "y": 140, "size": 14}
+          "award_line": {"text": "Awarded on {issue_date}", "y": 140, "size": 14},
+          "verify_line": {"text": "Verify at {verify_url} with ID: {verify_uuid}", "y": 60, "size": 9}
         }
       }
     """
