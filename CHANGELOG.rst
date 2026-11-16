@@ -16,6 +16,19 @@ Unreleased
 
 *
 
+0.6.0 - 2026-11-16
+******************
+
+Added
+=====
+
+* ``links`` option for PDF credentials. Its keys can be used as placeholders in text elements to render clickable links.
+
+Fixed
+=====
+
+* Placeholder values in PDF text elements are no longer processed for escaped braces (``{{`` and ``}}``).
+
 0.5.5 - 2026-11-11
 ******************
 
