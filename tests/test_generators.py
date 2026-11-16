@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import io
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 import pytest
@@ -14,10 +14,12 @@ from django.test import override_settings
 from inmemorystorage import InMemoryStorage
 from pypdf import PdfReader, PdfWriter
 from pypdf.constants import UserAccessPermissions
+from reportlab.pdfbase.pdfmetrics import getAscentDescent
 
 from learning_credentials.exceptions import AssetNotFoundError
 from learning_credentials.generators import (
     FontError,
+    _build_links,
     _build_text_elements,
     _get_credential_paths,
     _get_defaults,
@@ -25,6 +27,7 @@ from learning_credentials.generators import (
     _invalidate_credential,
     _register_font,
     _save_credential,
+    _split_into_segments,
     _substitute_placeholders,
     _write_text_on_template,
     generate_pdf_credential,
@@ -122,11 +125,49 @@ def test_hex_to_rgb(hex_color: str, expected: tuple[float, float, float]):
         ('Unknown {unknown}', {'name': 'John'}, 'Unknown {unknown}'),  # Unknown placeholder kept as-is.
         ('Escaped {{braces}}', {}, 'Escaped {braces}'),  # Escaped braces.
         ('{{name}} is {name}', {'name': 'John'}, '{name} is John'),  # Mixed escaped and real.
+        ('Hello {name}!', {'name': '{issue_date}}}'}, 'Hello {issue_date}}}!'),  # Values are not processed.
     ],
 )
 def test_substitute_placeholders(text: str, placeholders: dict[str, str], expected: str):
     """Test the _substitute_placeholders function."""
     assert _substitute_placeholders(text, placeholders) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ('No placeholders', [('No placeholders', None)]),
+        ('Hello {name}!', [('Hello ', None), ('John', None), ('!', None)]),
+        ('Go to {verify_url}', [('Go to ', None), ('example.com', 'https://example.com')]),
+        ('{verify_url} {{verify_url}}', [('example.com', 'https://example.com'), (' {verify_url}', None)]),
+        ('{unknown} {verify_url}', [('{unknown} ', None), ('example.com', 'https://example.com')]),
+    ],
+)
+def test_split_into_segments(text: str, expected: list[tuple[str, str | None]]):
+    """Test that _split_into_segments splits the text into plain text and link segments."""
+    links = {'verify_url': ('example.com', 'https://example.com'), 'name': ('ignored', 'https://ignored.com')}
+
+    assert _split_into_segments(text, {'name': 'John'}, links) == expected
+
+
+def test_build_links():
+    """Test that _build_links substitutes placeholders and skips invalid links."""
+    options = {
+        'links': {
+            'verify_url': {'text': 'Verify {name}', 'url': 'https://example.com/verify?id={verify_uuid}&n={name}'},
+            'no_text': {'url': 'https://example.com/{verify_uuid}'},
+            'name': {'url': 'https://example.com'},  # Conflicts with a built-in placeholder.
+            'no_url': {'text': 'No URL'},
+            'invalid': 'https://example.com',
+        },
+    }
+    placeholders = {'name': 'John Doe', 'verify_uuid': '1234'}
+
+    assert _build_links(options, placeholders) == {
+        'verify_url': ('Verify John Doe', 'https://example.com/verify?id=1234&n=John%20Doe'),
+        'no_text': ('https://example.com/1234', 'https://example.com/1234'),
+    }
+    assert _build_links({}, placeholders) == {}
 
 
 def test_build_text_elements_defaults():
@@ -263,7 +304,7 @@ def test_write_text_on_template(mock_canvas_class: Mock, mock_register_font: Moc
     template_mock.mediabox = [0, 0, template_width, template_height]
 
     # Call the function with test parameters and mocks.
-    _write_text_on_template(template_mock, username, context_name, test_date, Mock(), options)
+    _write_text_on_template(template_mock, username, context_name, test_date, str(uuid4()), options)
 
     # Verify that Canvas was created with the correct pagesize.
     # Use `call_args_list` to ignore the first argument, which is an instance of io.BytesIO.
@@ -295,7 +336,7 @@ def test_write_text_on_template(mock_canvas_class: Mock, mock_register_font: Moc
         (True, "JOHN DOE"),  # Uppercase.
     ],
 )
-@patch('learning_credentials.generators._register_font', return_value=True)
+@patch('learning_credentials.generators._register_font', return_value="Helvetica")
 @patch('learning_credentials.generators.Canvas', return_value=Mock(stringWidth=Mock(return_value=10)))
 def test_write_text_on_template_uppercase(
     mock_canvas_class: Mock,
@@ -316,7 +357,7 @@ def test_write_text_on_template_uppercase(
         },
     }
 
-    _write_text_on_template(template_mock, username, context_name, test_date, Mock(), options)
+    _write_text_on_template(template_mock, username, context_name, test_date, str(uuid4()), options)
 
     drawn_texts = [call[1][2] for call in mock_canvas_class.return_value.drawString.mock_calls]
     assert expected_text in drawn_texts
@@ -331,7 +372,7 @@ def test_write_text_on_template_uppercase(
         (0.5, 0.5),  # Float value.
     ],
 )
-@patch('learning_credentials.generators._register_font', return_value=True)
+@patch('learning_credentials.generators._register_font', return_value="Helvetica")
 @patch('learning_credentials.generators.Canvas', return_value=Mock(stringWidth=Mock(return_value=10)))
 def test_write_text_on_template_char_space(
     mock_canvas_class: Mock,
@@ -352,7 +393,7 @@ def test_write_text_on_template_char_space(
         },
     }
 
-    _write_text_on_template(template_mock, username, context_name, test_date, Mock(), options)
+    _write_text_on_template(template_mock, username, context_name, test_date, str(uuid4()), options)
 
     date_calls = [call for call in mock_canvas_class.return_value.drawString.mock_calls if call[1][2] == test_date]
     assert len(date_calls) == 1
@@ -376,7 +417,7 @@ def test_write_text_on_template_custom_element(mock_canvas_class: Mock, mock_reg
         },
     }
 
-    _write_text_on_template(template_mock, username, context_name, test_date, Mock(), options)
+    _write_text_on_template(template_mock, username, context_name, test_date, str(uuid4()), options)
 
     canvas_object = mock_canvas_class.return_value
 
@@ -387,6 +428,49 @@ def test_write_text_on_template_custom_element(mock_canvas_class: Mock, mock_reg
     assert test_date not in drawn_texts
 
     assert mock_register_font.call_count == 3
+
+
+@patch('learning_credentials.generators._register_font', return_value="Helvetica")
+@patch('learning_credentials.generators.Canvas', return_value=Mock(stringWidth=Mock(side_effect=len)))
+def test_write_text_on_template_links(mock_canvas_class: Mock, mock_register_font: Mock):  # noqa: ARG001
+    """Test that the _write_text_on_template function adds clickable areas over the link placeholders."""
+    mock_canvas_class.reset_mock()
+
+    template_mock = Mock(mediabox=[0, 0, 300, 200])
+    options = {
+        'links': {
+            'verify_url': {'text': 'example.com/verify', 'url': 'https://example.com/verify?id={verify_uuid}'},
+        },
+        'text_elements': {
+            'name': False,
+            'context': False,
+            'date': False,
+            'verify': {
+                'text': 'Go to {verify_url} and\n{verify_uuid}: ({verify_url})',
+                'y': 100,
+                'size': 10,
+                'char_space': 1,
+                'uppercase': True,
+            },
+        },
+    }
+
+    _write_text_on_template(template_mock, 'John Doe', 'Programming 101', 'April 1, 2021', 'abcd', options)
+
+    canvas_object = mock_canvas_class.return_value
+    drawn_texts = [call[1][2] for call in canvas_object.drawString.mock_calls]
+    assert drawn_texts == ['GO TO EXAMPLE.COM/VERIFY AND', 'ABCD: (EXAMPLE.COM/VERIFY)']
+
+    # With `stringWidth` equal to the text length and `char_space` 1, each character takes 2 points.
+    # The first line is 28 characters long (55 points wide), so it starts at x=122.5. The link starts after 6
+    # characters and is 18 characters long (35 points wide). The second line is 26 characters long (51 points wide), so
+    # it starts at x=124.5. The link starts after 7 characters. The second line is 11 points lower (line height).
+    ascent, descent = getAscentDescent('Helvetica', 10)
+    url = 'https://example.com/verify?id=abcd'
+    assert canvas_object.linkURL.call_args_list == [
+        call(url, (134.5, 100 + descent, 169.5, 100 + ascent), relative=0, thickness=0),
+        call(url, (138.5, 89 + descent, 173.5, 89 + ascent), relative=0, thickness=0),
+    ]
 
 
 @override_settings(LMS_ROOT_URL="https://example.com", MEDIA_URL="media/")
@@ -608,6 +692,46 @@ def test_generate_pdf_credential_saved_file_contains_overlay(mock_get_asset_by_s
     assert 'Test User' in page_text
     assert 'Test Course' in page_text
     assert 'April 1, 2021' in page_text
+
+
+@patch('learning_credentials.generators.CredentialAsset.get_asset_by_slug')
+def test_generate_pdf_credential_saved_file_contains_links(mock_get_asset_by_slug: Mock):
+    """Test that the saved (encrypted) PDF contains the link annotations from the overlay."""
+    template_writer = PdfWriter()
+    template_writer.add_blank_page(width=842, height=595)
+    template_buffer = io.BytesIO()
+    template_writer.write(template_buffer)
+    mock_get_asset_by_slug.return_value = ContentFile(template_buffer.getvalue(), name='template.pdf')
+
+    verify_uuid = uuid4()
+    credential = Mock(
+        uuid=uuid4(),
+        user_full_name='Test User',
+        learning_context_name='Test Course',
+        verify_uuid=verify_uuid,
+        created=Mock(),
+    )
+    options = {
+        'template': 'template',
+        'links': {'verify_url': {'text': 'example.com/verify', 'url': 'https://example.com/verify?id={verify_uuid}'}},
+        'text_elements': {'verify': {'text': 'Verify at {verify_url}', 'y': 50}},
+    }
+
+    storage = InMemoryStorage()
+    with (
+        patch('learning_credentials.generators.default_storage', storage),
+        patch('learning_credentials.generators.get_localized_credential_date', return_value='April 1, 2021'),
+    ):
+        generate_pdf_credential(credential, options)
+
+    with storage.open(f'learning_credentials/{credential.uuid}.pdf', 'rb') as saved_file:
+        reader = PdfReader(io.BytesIO(saved_file.read()))
+    reader.decrypt('')
+    page = reader.pages[0]
+    assert 'Verify at example.com/verify' in page.extract_text()
+
+    annotations = [annotation.get_object() for annotation in page['/Annots']]
+    assert [annotation['/A']['/URI'] for annotation in annotations] == [f'https://example.com/verify?id={verify_uuid}']
 
 
 def test_generate_pdf_credential_no_template():

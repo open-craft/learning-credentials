@@ -50,6 +50,9 @@ Top-Level Options
    * - ``defaults``
      - No
      - Global defaults for all text elements (see below).
+   * - ``links``
+     - No
+     - Clickable links that can be used as placeholders in text elements (see below).
    * - ``text_elements``
      - No
      - Configuration for individual text elements (see below).
@@ -215,6 +218,48 @@ To include literal braces, use ``{{`` and ``}}``:
     {
         "text": "Score: {{95%}}"
     }
+
+Links
+=====
+
+The ``links`` object defines clickable links. Each key becomes a placeholder that can be used in
+the ``text`` of any element. The placeholder is replaced with the link text, and the area covered
+by it becomes clickable in the PDF:
+
+.. code-block:: json
+
+    {
+        "links": {
+            "verify_url": {
+                "text": "https://example.com/verify",
+                "url": "https://example.com/verify?id={verify_uuid}"
+            }
+        },
+        "text_elements": {
+            "verify_line": {
+                "text": "To verify this certificate, go to {verify_url} and enter the Document ID: {verify_uuid}",
+                "y": 60,
+                "size": 9
+            }
+        }
+    }
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 65
+
+   * - Property
+     - Default
+     - Description
+   * - ``url``
+     - (required)
+     - Link target. Supports the standard placeholders. Their values are URL-encoded.
+   * - ``text``
+     - the URL
+     - Displayed text. Supports the standard placeholders (but not other links).
+
+The link uses the styling of the element it is placed in. Link keys cannot override the standard
+placeholders (``name``, ``context_name``, ``issue_date``, ``verify_uuid``). Such links are ignored.
 
 Hiding Elements
 ===============
